@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
+import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler(async (req,res)=>{
     //steps
@@ -125,7 +126,7 @@ const loginUser = asyncHandler(async (req,res)=>{
     /*jab bhi db mai kuch save karte hain, toh save karne se pehle validation active hota hai, aur vo check karta hai ki saari required
     fields bheji hain ya nhi, if u don't want aisa ho toh ye likhdo {validateBeforeSave: false} */
 
-    user.select("-password -refreshToken")
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     const options = {
         httpOnly: true,  //this line makes sure that only the server can modify these cookies and frontend cannot
@@ -137,7 +138,7 @@ const loginUser = asyncHandler(async (req,res)=>{
     .cookie("accessToken",accessToken,options)
     .cookie("refreshToken",refreshToken,options)
     .json(
-        new ApiResponse(200, { user, accessToken, refreshToken }, "user logged in successfully")
+        new ApiResponse(200, { user: loggedInUser, accessToken, refreshToken }, "user logged in successfully")
     )
 })
 
@@ -146,7 +147,7 @@ const logoutUser = asyncHandler(async (req,res)=>{
         req.user._id,
         {
             $set: {
-                refreshToken: undefined
+                refreshToken: 1
             }
         }
     )
@@ -163,4 +164,40 @@ const logoutUser = asyncHandler(async (req,res)=>{
     .json( new ApiResponse(200, {}, "User logged out successfully"))
 })
 
-export {registerUser, loginUser, logoutUser}
+const refreshAccessToken = asyncHandler(async (req,res)=>{
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken
+    if(!incomingRefreshToken){
+        throw new ApiError(401,"Unauthorised request")
+    }
+
+    const decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+
+    const user = await User.findById(decodedToken._id)
+    if(!user){
+        throw new ApiError(401,"Invalid refresh token")
+    }
+
+    if(incomingRefreshToken !== user.refreshToken){
+        throw new ApiError(401, "refresh token is expired or used")
+    }
+
+    const accessToken = user.generateAccessToken()
+    const newRefreshToken = user.generateRefreshToken()
+
+    user.refreshToken = newRefreshToken
+    user.save({validateBeforeSave: false})
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",newRefreshToken,options)
+    .json( new ApiResponse(200, { accessToken, refreshToken: newRefreshToken}, "Access token refreshed"))
+
+})
+
+export {registerUser, loginUser, logoutUser, refreshAccessToken}
