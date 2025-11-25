@@ -1,8 +1,8 @@
 class ApiError extends Error{
     constructor(statusCode, message = "Something went wrong", errors = [], stack = ""){
+        super(message)     //jab class extend karte hain toh super constructor call karna padhta hai ek baar varna this use nhi kar sakte
         this.statusCode = statusCode
         this.data = null
-        this.message = message
         this.success = false
         this.errors = errors
 

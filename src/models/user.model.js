@@ -25,6 +25,7 @@ const userSchema = new Schema(
             unique: true,
             lowercase: true,
             trim: true,
+            index: true
         },
         fullName: {
             type: String,
@@ -71,6 +72,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
     return await bcrypt.compare(password,this.password)
 }
 
+//access token is a short-lived token
 userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
@@ -81,11 +83,13 @@ userSchema.methods.generateAccessToken = function(){
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
-            expiresIn: ACCESS_TOKEN_EXPIRY
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
 
+//refresh token is a long-lived token
+//jab access token expire ho jata hai toh refresh token check karke hum ek naya access token user ko de dete hain, so the user doesn't always has to login 
 userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {
@@ -93,9 +97,14 @@ userSchema.methods.generateRefreshToken = function(){
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
-            expiresIn: REFRESH_TOKEN_EXPIRY
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )
 }
+
+//Jo methods User model mai add kiye hain unn methods ko call karne ke liye hume issi model ka object chahiye
+//"User" ka use karke methods call nhi kar sakte
+//it's like a model is a class with methods and data, which can be accessed only through the objects of that class
+//a class can't access any methods or data
 
 export const User = model("User",userSchema)
