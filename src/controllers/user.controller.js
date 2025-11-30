@@ -337,7 +337,7 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
 })
 
 const getUserChannelProfile = asyncHandler(async (req,res)=>{
-    const {username} = req.params
+    const {username} = req.params  //ye url se aayega toh iske route mai "/:username" likhna padega
     if(!username?.trim()){
         throw new ApiError(400,"Username is missing")
     }
