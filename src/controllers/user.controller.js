@@ -5,6 +5,10 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
+import { subscribe } from "diagnostics_channel";
+import mongoose from "mongoose";
+
+//TODO: req, res body params ye sab kahan se aa rha hai vo samajhna hai
 
 const registerUser = asyncHandler(async (req,res)=>{
     //steps
@@ -332,6 +336,153 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
     .json(new ApiResponse(200, user, "Cover image updated successfully"))
 })
 
+const getUserChannelProfile = asyncHandler(async (req,res)=>{
+    const {username} = req.params
+    if(!username?.trim()){
+        throw new ApiError(400,"Username is missing")
+    }
+
+//aggregation pipeline mai hum ek array of objects dete hain, array ka har object ek stage hota hai
+//The documents that are output from one stage are passed to the next stage
+    const channel = await User.aggregate([
+        {
+            $match: {               //It takes a condition and returns only those documents that satisfy the condition.
+                username: username   //These documents are then passed one by one to the next stage
+            }
+        },
+        {
+        /* $lookup Performs a left outer join to a collection(model) in the same database to filter in documents from the foreign 
+        collection for processing. The $lookup stage adds a new array field to each input document. The new array field contains the 
+        matching documents from the foreign collection. The $lookup stage passes these reshaped documents to the next stage*/
+        //kisi bhi model ke ek object ko jisme data filled hota hai usse document boltein hain
+            $lookup: {
+                from: "subscriptions", //jis collection ko left join karke usme search marna hai uska database vala naam likhna padta hai yahan
+                localField: "_id",          //jis field ki value search karni hai dusre collection(model) mai
+                foreignField: "channel",    //dusre collection ki jis field se compare karna hai
+                as: "subscribers" //lookup iss naam ki ek new field add kar deta hai document mai,jisme ek array of documents found hota h
+            }
+        /*iss stage mai user ke document mai ek subscribers naam ki field add ho jayegi jisme ek array hoga containing documents(objects)
+        with channel(same as the current channel's document's _id) and subscriber */
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        /*iss stage mai ek aur new field named subscribedTo add ho jayegi document mai, jisme ek array hoga containing documents with
+        subscriber(same as the current channel's document's _id) and channel */
+        },
+        {
+            $addFields: {       //ye current user document mai new fields add kar dega
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                subscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id,"$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {    //jo fields final document mai rakhni hain unke aage 1 likhde, zyada data bhejna network traffic increase kar deta hai aur memory bhi zyada leta hai toh inefficient ho jata hai
+                username: 1,
+                email: 1,
+                fullName: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscribersCount: 1,
+                subscribedToCount: 1,
+                isSubscribed: 1
+            }
+        }
+    ])
+    //aggregate returns an array containing all the documents formed after all stages
+    //iss case mai array ke andar bus ek he document hoga
+
+    if(channel?.length===0){
+        throw new ApiError(404, "Channel does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+})
+
+const getWatchHistory = asyncHandler(async (req,res)=>{
+    const user = await User.aggregate([
+        //find current user's document
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)  //db mai _id thoda alag tareeke se stored hoti hai 
+            }                                                   //toh _id ko mongoose ki help se uss form mai convert karna padta hai
+        },
+        //find all the documents of the videos the user has watched, by using the video _ids from watchHistory
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",   /*here we are replacing the initial watchHistory field(which contained video _ids) with a new 
+                watchHistory field(containing an array of video documents). Note that this won't change anything in the database, we are
+                just maiking changes to the copy of the user document we got from the previous stage*/
+
+                //since lookup will add a new field containing an array of video documents found
+                //we will first have to find and store the user document(details of owner of video) inside each video document 
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+
+                            //before adding the owner's document, we first need to remove the unnecessary fields
+                            pipeline: [
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullName: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    //now the owner field of the video document will have an array which will contain just one element(i.e. owner doucment)
+                    //we need to extract the owner document from the array and store it in the owner field
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"   //$first gets the first element of the array 
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        //we don't need the details of the current user here, we just need his watchHistory
+        {
+            $project: {
+                watchHistory: 1
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user[0], "watchHistory fetched successfully"))
+})
+
 export {
     registerUser,
     loginUser,
@@ -341,5 +492,7 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 }
