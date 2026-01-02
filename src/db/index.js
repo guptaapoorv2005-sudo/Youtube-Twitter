@@ -8,7 +8,7 @@ const connectDB = async ()=>{
     } catch (error) {
         console.log("MONGODB connection error ",error);
         process.exit(1);  //process.exit se pura code execution vaheen end ho jata hai, iske andar 0 likhte hain successful completion
-                          //succesfull completion show karne ke liye aur 1 for showing ki kuch error aa gaya and program failed
+                          //0 succesfull completion show karne ke liye aur 1 for showing ki kuch error aa gaya and program failed
     }
 }
 
