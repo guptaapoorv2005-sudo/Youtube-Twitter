@@ -406,7 +406,7 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
     //aggregate returns an array containing all the documents formed after all stages
     //iss case mai array ke andar bus ek he document hoga
 
-    if(channel?.length===0){
+    if(!channel?.length){
         throw new ApiError(404, "Channel does not exists")
     }
 
@@ -422,8 +422,8 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
         //find current user's document
         {
             $match: {
-                _id: new mongoose.Types.ObjectId(req.user._id)  //db mai _id thoda alag tareeke se stored hoti hai 
-            }                                                   //toh _id ko mongoose ki help se uss form mai convert karna padta hai
+                _id: req.user._id
+            }
         },
         //find all the documents of the videos the user has watched, by using the video _ids from watchHistory
         {
