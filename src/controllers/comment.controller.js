@@ -125,7 +125,31 @@ const updateComment = asyncHandler(async (req,res) => {
     .json(new ApiResponse(200,updatedComment,"Comment updated successfully"))
 })
 
+const deleteComment = asyncHandler(async (req,res) => {
+    const {commentId} = req.params
+    if(!commentId || !mongoose.Types.ObjectId.isValid(commentId)){
+        throw new ApiError(400, "Invalid comment id")
+    }
+
+    const deletedComment = await Comment.findOneAndDelete(
+        {
+            _id: commentId,
+            owner: req.user._id
+        }
+    )
+
+    if(!deletedComment){
+        throw new ApiError(404, "Comment not found or unauthorized request")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,{},"Comment deleted successfully"))
+})
+
 export {
     getVideoComments,
     addComment,
+    updateComment,
+    deleteComment
 }
