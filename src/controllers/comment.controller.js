@@ -7,7 +7,8 @@ import { Video } from "../models/video.model.js";
 
 
 const getVideoComments = asyncHandler(async (req,res) => {
-    const {videoId, page = 1, limit = 10} = req.query
+    const { page = 1, limit = 10} = req.query
+    const {videoId} = req.params
     if(!videoId || !mongoose.Types.ObjectId.isValid(videoId)){
         throw new ApiError(400, "Invalid video id")
     }
