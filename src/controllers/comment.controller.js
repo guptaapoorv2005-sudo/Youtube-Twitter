@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Comment } from "../models/comment.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Video } from "../models/video.model.js";
 
 
 const getVideoComments = asyncHandler(async (req,res) => {
@@ -59,3 +60,72 @@ const getVideoComments = asyncHandler(async (req,res) => {
     .status(200)
     .json(new ApiResponse(200,comments,"Comments fetched successfully"))
 })
+
+const addComment = asyncHandler(async (req,res) => {
+    const {videoId} = req.params
+    if(!videoId || !mongoose.Types.ObjectId.isValid(videoId)){
+        throw new ApiError(400, "Invalid video id")
+    }
+
+    const videoExists = await Video.exists({ _id: videoId })
+    if (!videoExists) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    const {content} = req.body
+    if(!content?.trim()){
+        throw new ApiError(400, "Content is required")
+    }
+
+    const comment = await Comment.create(
+        {
+            content,
+            video: videoId,
+            owner: req.user._id
+        }
+    )
+
+    if(!comment){
+        throw new ApiError(500, "Error while creating comment")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(201,comment,"Comment added successfully"))
+})
+
+const updateComment = asyncHandler(async (req,res) => {
+    const {commentId} = req.params
+    if(!commentId || !mongoose.Types.ObjectId.isValid(commentId)){
+        throw new ApiError(400, "Invalid comment id")
+    }
+
+    const {content} = req.body
+    if(!content?.trim()){
+        throw new ApiError(400,"Content is required")
+    }
+
+    const updatedComment = await Comment.findOneAndUpdate(
+        {
+            _id: commentId,
+            owner: req.user._id
+        },
+        {
+            content
+        },
+        {new: true}
+    )
+
+    if(!updatedComment){
+        throw new ApiError(404,"Comment not found or unauthorized")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,updatedComment,"Comment updated successfully"))
+})
+
+export {
+    getVideoComments,
+    addComment,
+}
