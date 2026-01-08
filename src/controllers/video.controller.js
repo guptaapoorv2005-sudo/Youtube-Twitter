@@ -44,7 +44,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         matchStage.owner = new mongoose.Types.ObjectId(userId) //userId string hai aur DB mai ObjectId ek object hota hai toh isse convert karna padega
     }
     
-    const aggregatePipeline = await Video.aggregate([
+    const aggregatePipeline = [
         {
             $match: matchStage
         },
@@ -78,7 +78,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         {
             $unwind: "$owner"  //Converts array field into a single object.
         }
-    ])
+    ]
 
     const options = {
         page: Number(page),  //page no. which u want to see
@@ -86,7 +86,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     }
 
     const videos = await Video.aggregatePaginate(   //aggregatePaginate ek object return karta hai,jisme multiple cheezein hoti hain
-        aggregatePipeline,                    //docs(array of fetched documents), totalDocs, page,totalPages, limit,etc.
+        Video.aggregate(aggregatePipeline),         //docs(array of fetched documents), totalDocs, page,totalPages, limit,etc.
         options
     )
 
