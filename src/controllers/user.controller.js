@@ -422,7 +422,7 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
         //find current user's document
         {
             $match: {
-                _id: req.user._id
+                _id: new mongoose.Types.ObjectId(req.user._id)
             }
         },
         //find all the documents of the videos the user has watched, by using the video _ids from watchHistory

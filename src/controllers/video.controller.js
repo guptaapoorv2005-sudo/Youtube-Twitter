@@ -19,7 +19,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
             {
                 $or: [
                     {isPublished: true},   //agar video published nhi hai toh bus owner he access kar sakta hai
-                    {owner: req.user._id}
+                    {owner: new mongoose.Types.ObjectId(req.user._id)}
                 ]
             },
             {
@@ -176,7 +176,7 @@ const getVideoById = asyncHandler(async (req,res) => {
                 _id: new mongoose.Types.ObjectId(videoId),
                 $or: [
                     {isPublished: true},     //agar video published nhi hai toh bus owner he access kar sakta hai
-                    {owner: req.user._id}
+                    {owner: new mongoose.Types.ObjectId(req.user._id)}
                 ]
             }
         },
