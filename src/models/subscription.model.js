@@ -1,4 +1,3 @@
-import e from "express";
 import mongoose, { Schema } from "mongoose";
 
 const subscriptionSchema = new Schema({
@@ -11,5 +10,10 @@ const subscriptionSchema = new Schema({
         ref: 'User',
     }
 }, { timestamps: true })
+
+subscriptionSchema.index(
+    {channel: 1, subscriber: 1},
+    {unique: true}
+)
 
 export const Subscription = mongoose.model('Subscription', subscriptionSchema);

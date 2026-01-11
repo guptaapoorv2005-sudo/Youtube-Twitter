@@ -14,7 +14,8 @@ const userSchema = new Schema(
         username: {
             type: String,
             required: true,
-            unique: true,
+            unique: true, /*makes this field a unique index, so writing index:true is optional as username is now an index which should
+                            be unique */
             lowercase: true,
             trim: true,
             index: true  //ye likhne se searching optimize ho jaati hai uss field ki

@@ -23,15 +23,28 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     )
 
     if(!isSubscribed){
+       try {
         await Subscription.create({
             channel: channelId,
             subscriber: req.user._id
         })
+        return res
+        .status(200)
+        .json(new ApiResponse(200, {subscribed: true}, "Channel subscribed successfully"))
+       } 
+       catch (error) {
+        if(error.code === 11000){
+            return res
+            .status(200)
+            .json(new ApiResponse(200, {subscribed: true}, "Channel already subscribed"))
+        }
+        throw new ApiError(500, "Internal error while subscribing channel")
+       }
     }
 
     return res
     .status(200)
-    .json(new ApiResponse(200,{},"Subscription toggled successfully"))
+    .json(new ApiResponse(200,{subscribed: false},"Channel unsubscribed successfully"))
 })
 
 const getUserChannelSubscribers = asyncHandler(async (req,res) => {
