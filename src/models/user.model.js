@@ -21,6 +21,7 @@ const userSchema = new Schema(
             index: true  //ye likhne se searching optimize ho jaati hai uss field ki
         },//A field with index: true is stored separately in an index data structure, and that index is maintained in sorted order.
         //MongoDB uses a B-tree–based index
+        //Every MongoDB index stores a reference to the document’s _id, and that’s how MongoDB jumps from an index entry to the actual document.
         email: {
             type: String,
             required: true,
