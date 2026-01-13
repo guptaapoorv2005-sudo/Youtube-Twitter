@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Subscription } from "../models/subscription.model.js";
 
 /*In skip MongoDB finds the documents with required channel and isPublished: true in O(log n) but after that performs a linear traversal to
  skip documents whereas in scroll it finds the exact starting document in O(log n). */
@@ -91,3 +92,67 @@ const getChannelVideos = asyncHandler(async (req,res) => {
     }, "Channel videos fetched successfully"))
 })
 
+const getChannelStats = asyncHandler(async (req, res) => {
+    // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
+    const {channelId} = req.params
+    if(!channelId || !mongoose.Types.ObjectId.isValid(channelId)){
+        throw new ApiError(400, "Invalid channel id")
+    }
+
+    const channel = await User.exists({_id: channelId})
+    if(!channel){
+        throw new ApiError(404, "No channel found")
+    }
+
+    const totalSubscribers = await Subscription.countDocuments({channel: channelId})
+
+    //agar array mai ek he element hai toh aise extract kar sakte hain
+    const [stats] = await Video.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(channelId),
+                isPublished: true
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "allLikes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: {$size: "$allLikes"}
+            }
+        },
+        {
+        /*$group combines multiple documents into a single document (or multiple documents) based on a key, and lets you calculate 
+         totals, counts, sums, averages, etc. */
+            $group: {
+                _id: null,  //grouping key
+                videosCount: {$sum: 1},
+                viewsCount: {$sum: "$views"},
+                totalLikes: {$sum: "$likesCount"}
+            }
+        //Documents with the same _id value are grouped together. MongoDB creates one output document per unique _id//
+        /*After a $group stage, MongoDB outputs the grouped documents one by one to the next stage, and each document contains 
+         ONLY the fields defined in the $group stage */
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {
+        videosCount: stats?.videosCount || 0,
+        likes: stats?.totalLikes || 0,
+        views: stats?.viewsCount || 0,
+        totalSubscribers
+    }, "Channel stats fetched successfully"))
+})
+
+export {
+    getChannelVideos,
+    getChannelStats
+}
