@@ -37,10 +37,10 @@ playlistSchema.index(  //prevents same user to have different playlists with sam
   { unique: true }
 )
 
-playlistSchema.index(
-    {owner: 1},
-    {isPublic: 1},
-    {createdAt: -1}
-)
+playlistSchema.index({
+    owner: 1,
+    isPublic: 1,
+    createdAt: -1
+})
 
 export const Playlist = model("Playlist", playlistSchema)

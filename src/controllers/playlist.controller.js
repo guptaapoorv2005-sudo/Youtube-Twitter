@@ -147,9 +147,172 @@ const removeVideoFromPlaylist = asyncHandler(async (req,res) => {
     .json(new ApiResponse(200, updatedPlaylist, "Video removed from playlist successfully"))
 })
 
+const getPlaylistById = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    if(!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)){
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const [playlist] = await Playlist.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(playlistId),
+                $or: [
+                    {isPublic: true},
+                    {owner: new mongoose.Types.ObjectId(req.user._id)}
+                ]
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videos",
+
+                pipeline: [
+                    {
+                        $sort: {
+                            createdAt: -1,
+                        },
+                        $project: {
+                            thumbnail: 1,
+                            title: 1,
+                            duration: 1,
+                            views: 1,
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+
+                pipeline: [
+                    {
+                        $project: {
+                            avatar: 1,
+                            fullName: 1,
+                            username: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: "$owner"
+        }
+    ])
+
+    if(!playlist){
+        throw new ApiError(404, "Playlist not found or is private")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, playlist, "Playlist fetched successfully"))
+})
+
+const deletePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    if(!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)){
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const deletedPlaylist = await Playlist.findOneAndDelete({
+        _id: playlistId,
+        owner: req.user._id
+    })
+
+    if(!deletedPlaylist){
+        throw new ApiError(404, "Playist not found or unauthorized request")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,deletedPlaylist, "Playlist deleted successfully"))
+})
+
+const updatePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    if(!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)){
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const {name, description} = req.body
+
+    const newName = name?.trim()
+    const newDescription = description?.trim()
+
+    if(!newName && !newDescription){
+        throw new ApiError(400, "Atleast one field is required")
+    }
+
+    const updateFields = {}
+    if (newName) updateFields.name = newName
+    if (newDescription) updateFields.description = newDescription
+
+    const updatedPlaylist = await Playlist.findOneAndUpdate(
+        {
+        _id: playlistId,
+        owner: req.user._id
+        },
+        {
+        $set: updateFields
+        },
+        { new: true }
+    );
+    
+    if(!updatedPlaylist){
+        throw new ApiError(404, "Playlist not found or anouthorized request")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, updatedPlaylist, "Playlist updated successfully"))
+})
+
+const togglePlaylistPublicStatus = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    if(!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)){
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const updatedPlaylist = await Playlist.findOneAndUpdate(
+        {
+            _id: playlistId,
+            owner: req.user._id
+        },
+        [
+            {
+                $set: {
+                    isPublic: {$not: "$isPublic"}
+                }
+            },
+        ],
+        {new: true}
+    )
+
+    if(!updatedPlaylist){
+        throw new ApiError(404, "No playlist found or unauthorized request")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, updatedPlaylist, "Public status toggled successfully"))
+})
+
 export {
     createPlaylist,
     getUserPlaylists,
     addVideoToPlaylist,
     removeVideoFromPlaylist,
+    getPlaylistById,
+    deletePlaylist,
+    updatePlaylist,
+    togglePlaylistPublicStatus
 }
