@@ -1,6 +1,7 @@
 import { Subscription } from "../models/subscription.model.js"
 import { Like } from "../models/like.model.js"
 import { User } from "../models/user.model.js"
+import { Playlist } from "../models/playlist.model.js"
 
 // Indexes defined in Mongoose schemas are NOT guaranteed to exist in MongoDB.
 // If a required index (especially UNIQUE / compound UNIQUE) is missing,
@@ -16,6 +17,7 @@ const syncCriticalIndexes = async() => {
     await Subscription.syncIndexes()
     await Like.syncIndexes()
     await User.syncIndexes()
+    await Playlist.syncIndexes()
 }
 
 export {syncCriticalIndexes}

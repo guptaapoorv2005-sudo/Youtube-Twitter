@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import { errorHandler } from './middlewares/error.middleware.js'
 
 const app = express();
 
@@ -27,6 +28,7 @@ import subscriptionRouter from "./routes/subscription.route.js"
 import commentRouter from "./routes/comment.routes.js"
 import likeRouter from "./routes/like.routes.js"
 import dashboardRouter from "./routes/dashboard.routes.js"
+import playlistRouter from "./routes/playlist.routes.js"
 
 //routes declare
 app.use("/api/v1/users",userRouter)
@@ -37,5 +39,9 @@ app.use("/api/v1/subscriptions",subscriptionRouter)
 app.use("/api/v1/comments",commentRouter)
 app.use("/api/v1/likes",likeRouter)
 app.use("/api/v1/dashboard",dashboardRouter)
+app.use("/api/v1/playlists",playlistRouter)
+
+// error middleware (last)
+app.use(errorHandler)
 
 export { app }

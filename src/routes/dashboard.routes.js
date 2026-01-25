@@ -10,7 +10,7 @@ router.route("/get-channel-videos").get(getChannelVideos)
 
 router.route("/:channelId").get(getChannelStats)
 
-export {router}
+export default router
 
 //routes ka order matter karta hai kyunki express routes ko top to bottom compare karta hai
 /*Agar yahan pe router.route("/:channelId") ye route pehle likhte toh GET /dashboard/get-channel-videos request will be interpreted as:
