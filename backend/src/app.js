@@ -9,7 +9,7 @@ const app = express();
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN,  
-    credentials: true    
+    credentials: true  //This allows cookies, authorization headers, and sessions to be sent with requests.
 }))
 app.use(express.json({limit: "16kb"}))
 app.use(express.urlencoded({

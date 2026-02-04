@@ -7,7 +7,6 @@ import fs from "fs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
-//TODO: req, res body params ye sab kahan se aa rha hai vo samajhna hai
 
 const registerUser = asyncHandler(async (req,res)=>{
     //steps
@@ -97,10 +96,10 @@ const loginUser = asyncHandler(async (req,res)=>{
     const {username, email, password} = req.body
 
     if(!username && !email){
-        throw new ApiError(200,"Username or email is required")
+        throw new ApiError(400,"Username or email is required")
     }
     if(!password){
-        throw new ApiError(200,"Password is required")
+        throw new ApiError(400,"Password is required")
     }
 
     const user = await User.findOne({
@@ -133,7 +132,7 @@ const loginUser = asyncHandler(async (req,res)=>{
 
     const options = {
         httpOnly: true,  //this line makes sure that only the server can modify these cookies and frontend cannot
-        secure: true
+        secure: process.env.NODE_ENV === "production"  //Cookie is sent ONLY over HTTPS and not over HTTP if secure: true
     }
 
     return res
@@ -157,7 +156,7 @@ const logoutUser = asyncHandler(async (req,res)=>{
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === "production"
     }
 
     return res
@@ -173,8 +172,13 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
         throw new ApiError(401,"Unauthorised request")
     }
 
-    const decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
-
+    let decodedToken;
+    try{
+        decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+    }catch(error){
+        throw new ApiError(401,"Invalid refresh token")
+    }
+    
     const user = await User.findById(decodedToken._id)
     if(!user){
         throw new ApiError(401,"Invalid refresh token")
@@ -188,11 +192,11 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
     const newRefreshToken = user.generateRefreshToken()
 
     user.refreshToken = newRefreshToken
-    user.save({validateBeforeSave: false})
+    await user.save({validateBeforeSave: false})
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === "production"
     }
 
     return res
@@ -206,8 +210,8 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
 const changeCurrentPassword = asyncHandler(async (req,res)=>{
     const { oldPassword, newPassword} = req.body
 
-    if(!oldPassword) throw new ApiError(400, "Current Password is required");
-    if(!newPassword) throw new ApiError(400, "New Password is required");
+    if(!oldPassword?.trim()) throw new ApiError(400, "Current Password is required");
+    if(!newPassword?.trim()) throw new ApiError(400, "New Password is required");
 
     const user = await User.findById(req.user._id)
 
