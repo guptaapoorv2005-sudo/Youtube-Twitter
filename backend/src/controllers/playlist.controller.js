@@ -74,7 +74,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
     const playlistExists = await Playlist.exists({_id: playlistId, owner: req.user._id})
     if(!playlistExists){
-        throw new ApiError(404, "Playlist not found or unauthorized request")
+        throw new ApiError(404, "Playlist not found or Forbidden request")
     }
 
     const videoExists = await Video.exists({_id: videoId})
@@ -122,7 +122,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req,res) => {
 
     const playlistExists = await Playlist.exists({_id: playlistId, owner: req.user._id})
     if(!playlistExists){
-        throw new ApiError(404, "Playlist not found or unauthorized request")
+        throw new ApiError(404, "Playlist not found or Forbidden request")
     }
 
     const updatedPlaylist = await Playlist.findOneAndUpdate(
@@ -229,7 +229,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     })
 
     if(!deletedPlaylist){
-        throw new ApiError(404, "Playist not found or unauthorized request")
+        throw new ApiError(404, "Playist not found or Forbidden request")
     }
 
     return res
@@ -298,7 +298,7 @@ const togglePlaylistPublicStatus = asyncHandler(async (req, res) => {
     )
 
     if(!updatedPlaylist){
-        throw new ApiError(404, "No playlist found or unauthorized request")
+        throw new ApiError(404, "No playlist found or Forbidden request")
     }
 
     return res

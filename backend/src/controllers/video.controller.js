@@ -226,7 +226,7 @@ const updateVideo = asyncHandler(async (req,res) => {
 
     //objectId ek object hoti hai toh usse compare karne ke liye string banana padta hai
     if(video.owner.toString() !== req.user._id.toString()){
-        throw new ApiError(403, "Unauthorized request")
+        throw new ApiError(403, "Forbidden request")
     }
 
     let {title,description} = req.body
@@ -286,7 +286,7 @@ const deleteVideo = asyncHandler(async (req,res) => {
     }
 
     if(video.owner.toString() !== req.user._id.toString()){
-        throw new ApiError(403, "Unauthorized request")
+        throw new ApiError(403, "Forbidden request")
     }
 
     await deleteFromCloudinary(video.videoFile)
@@ -321,7 +321,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     )
 
     if(!updatedVideo){
-        throw new ApiError(403, "Video not found or Unauthorized request")
+        throw new ApiError(403, "Video not found or Forbidden request")
     }
 
     return res

@@ -60,7 +60,7 @@ const updateTweet = asyncHandler(async (req,res) => {
     )
 
     if(!updatedTweet){
-        throw new ApiError(403, "Unauthorized request or invalid tweet id")
+        throw new ApiError(403, "Forbidden request or invalid tweet id")
     }
 
     return res
@@ -82,7 +82,7 @@ const deleteTweet = asyncHandler(async (req,res) => {
     )
 
     if(!deleted){
-        throw new ApiError(404, "Tweet not found or unauthorized request")
+        throw new ApiError(404, "Tweet not found or Forbidden request")
     }
 
     return res

@@ -118,7 +118,7 @@ const updateComment = asyncHandler(async (req,res) => {
     )
 
     if(!updatedComment){
-        throw new ApiError(404,"Comment not found or unauthorized")
+        throw new ApiError(404,"Comment not found or Forbidden request")
     }
 
     return res
@@ -140,7 +140,7 @@ const deleteComment = asyncHandler(async (req,res) => {
     )
 
     if(!deletedComment){
-        throw new ApiError(404, "Comment not found or unauthorized request")
+        throw new ApiError(404, "Comment not found or Forbidden request")
     }
 
     return res

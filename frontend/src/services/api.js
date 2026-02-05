@@ -3,40 +3,98 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
+  baseURL: API_BASE_URL, //all requests use this url prefix
+  withCredentials: true, //send cookies with requests
 });
 
-// Add token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 // Handle errors
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve();
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      window.location.href = '/login';
+
+  async (error) => {
+    const originalRequest = error.config; //error.config is the exact Axios request configuration object that was used to make the request that just failed.
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => {
+          return api(originalRequest);
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        await api.post("/users/refresh-token");
+
+        isRefreshing = false;
+        processQueue(null);
+
+        return api(originalRequest);
+
+      } catch (refreshError) {
+        isRefreshing = false;
+        processQueue(refreshError);
+
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
     }
+
     return Promise.reject(error);
   }
 );
 
+
 // Auth APIs
 export const authAPI = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
-  register: (userData) => api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
-  getCurrentUser: () => api.get('/auth/current-user'),
+  register: (userData, avatarFile, coverImageFile) => {
+    const formData = new FormData(); //FormData is a browser API used when Uploading files
+
+    formData.append("avatar", avatarFile); //the key 'avatar' should match the backend field name used in multer
+    if(coverImageFile)formData.append("coverImage",coverImageFile);
+
+    Object.keys(userData).forEach(key => {
+      formData.append(key, userData[key]);
+    });
+
+    return api.post('/users/register', formData);
+  },
+  login: (userData) => api.post('/users/login', userData),
+  logout: () => api.post('/users/logout'),
+  getCurrentUser: () => api.get('/users/current-user'),
+  changePassword: (passwordData) => api.patch('/users/change-password', passwordData),
+  updateAccountDetails: (details) => api.patch('/users/update-account', details),
+  updateAvatar: (avatarFile) => {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+
+    return api.patch('/users/update-avatar', formData);
+  },
+  updateCoverImage: (coverImageFile) => {
+    const formData = new FormData();
+    formData.append('coverImage', coverImageFile);
+    return api.patch('/users/update-cover', formData);
+  },
+  getUserChannelProfile: (username) => api.get(`/users/channel/${username}`),
+  getWatchHistory: () => api.get('/users/history')
 };
 
 // Posts/Tweets APIs
@@ -55,7 +113,7 @@ export const postsAPI = {
 
 // Videos APIs
 export const videosAPI = {
-  getVideos: (page = 1, limit = 12) => api.get(`/videos?page=${page}&limit=${limit}`),
+  getVideos: (page = 1, limit = 10) => api.get(`/videos?page=${page}&limit=${limit}`),
   getVideo: (videoId) => api.get(`/videos/${videoId}`),
   createVideo: (formData) =>
     api.post('/videos', formData, {
@@ -81,13 +139,9 @@ export const commentsAPI = {
 // Users APIs
 export const usersAPI = {
   getUser: (userId) => api.get(`/users/${userId}`),
-  updateProfile: (data) =>
-    api.patch('/users/profile', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
   getUserPosts: (userId, page = 1, limit = 10) =>
     api.get(`/users/${userId}/posts?page=${page}&limit=${limit}`),
-  getUserVideos: (userId, page = 1, limit = 12) =>
+  getUserVideos: (userId, page = 1, limit = 10) =>
     api.get(`/users/${userId}/videos?page=${page}&limit=${limit}`),
   followUser: (userId) => api.post(`/users/${userId}/follow`),
   unfollowUser: (userId) => api.delete(`/users/${userId}/follow`),

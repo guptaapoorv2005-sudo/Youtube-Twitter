@@ -43,7 +43,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     const existedUser = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim() }]
     })
     // console.log("existedUser: ",existedUser)
     if(existedUser){
@@ -60,10 +60,10 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     const user = await User.create({        //ye method DB mai data entry karne ke baad sara data return karta hai
-        username: username.toLowerCase(),
-        email,
+        username: username.trim().toLowerCase(),
+        email: email.trim(),
         password,
-        fullName,
+        fullName: fullName.trim(),
         avatar: avatar.url,
         coverImage: coverImage?.url || ""
     })
@@ -95,15 +95,15 @@ const loginUser = asyncHandler(async (req,res)=>{
 
     const {username, email, password} = req.body
 
-    if(!username && !email){
+    if(!username?.trim() && !email?.trim()){
         throw new ApiError(400,"Username or email is required")
     }
-    if(!password){
+    if(!password?.trim()){
         throw new ApiError(400,"Password is required")
     }
 
     const user = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim() }]
     })
     if(!user){
         throw new ApiError(404, "No user found")
@@ -238,38 +238,38 @@ const getCurrentUser = asyncHandler(async (req,res)=>{
 
 const updateAccountDetails = asyncHandler(async (req,res)=>{
     const {fullName, email} = req.body
-    if(!fullName && !email){
+    if(!fullName?.trim() && !email?.trim()){
         throw new ApiError(400, "Fullname or email is required")
     }
 
     let user;
 
-    if(!email){
+    if(!email?.trim()){
         user = await User.findByIdAndUpdate(
             req.user._id,
             {
-                $set: {fullName}
+                $set: {fullName: fullName.trim()}
             },
             {new: true}  //ye line updated object return kar deti hai
         ).select("-password -refreshToken")
     }
 
-    else if(!fullName){
-        const existedUser = await User.findOne({email})
+    else if(!fullName?.trim()){
+        const existedUser = await User.findOne({email: email.trim(), _id: { $ne: req.user._id }})
         if(existedUser){
             throw new ApiError(400, "Another user with same email already exists")
         }
         user = await User.findByIdAndUpdate(
             req.user._id,
             {
-                $set: {email}
+                $set: {email: email.trim()}
             },
             {new: true}
         ).select("-password -refreshToken")
     }
 
     else{
-        const existedUser = await User.findOne({email})
+        const existedUser = await User.findOne({email: email.trim(), _id: { $ne: req.user._id }})
         if(existedUser){
             throw new ApiError(400, "Another user with same email already exists")
         }
@@ -278,8 +278,8 @@ const updateAccountDetails = asyncHandler(async (req,res)=>{
             req.user._id,
             {
                 $set: {
-                    fullName,
-                    email
+                    fullName: fullName.trim(),
+                    email: email.trim()
                 }
             },
             {new: true}
@@ -350,7 +350,7 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
     const channel = await User.aggregate([
         {
             $match: {               //It takes a condition and returns only those documents that satisfy the condition.
-                username: username   //These documents are then passed one by one to the next stage
+                username: username.trim().toLowerCase()   //These documents are then passed one by one to the next stage
             }
         },
         {
