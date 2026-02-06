@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { get } from 'mongoose';
+import { toggleSubscription } from '../../../backend/src/controllers/subscription.controller';
+import { updateComment } from '../../../backend/src/controllers/comment.controller';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -97,62 +100,86 @@ export const authAPI = {
   getWatchHistory: () => api.get('/users/history')
 };
 
-// Posts/Tweets APIs
-export const postsAPI = {
-  getFeed: (page = 1, limit = 10) => api.get(`/posts?page=${page}&limit=${limit}`),
-  createPost: (content, images = []) =>
-    api.post('/posts', { content, images }, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-  getPost: (postId) => api.get(`/posts/${postId}`),
-  updatePost: (postId, content) => api.patch(`/posts/${postId}`, { content }),
-  deletePost: (postId) => api.delete(`/posts/${postId}`),
-  likePost: (postId) => api.post(`/posts/${postId}/like`),
-  unlikePost: (postId) => api.delete(`/posts/${postId}/like`),
+// Tweets APIs
+export const tweetsAPI = {
+  // getFeed: (page = 1, limit = 10) => api.get(`/posts?page=${page}&limit=${limit}`),
+  createTweet: (content) => api.post('/tweets', { content }),
+  getUserTweets: (userId) => api.get(`/tweets/user/${userId}`),
+  updateTweet: (tweetId, content) => api.patch(`/tweets/${tweetId}`, { content }),
+  deleteTweet: (tweetId) => api.delete(`/tweets/${tweetId}`),
 };
 
 // Videos APIs
 export const videosAPI = {
-  getVideos: (page = 1, limit = 10) => api.get(`/videos?page=${page}&limit=${limit}`),
+  getVideos: (page = 1, limit = 10, query = '', sortBy = 'createdAt', sortType = '', userId = '') => 
+    api.get(`/videos?page=${page}&limit=${limit}&query=${query}&sortBy=${sortBy}&sortType=${sortType}&userId=${userId}`),
   getVideo: (videoId) => api.get(`/videos/${videoId}`),
-  createVideo: (formData) =>
-    api.post('/videos', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-  updateVideo: (videoId, data) => api.patch(`/videos/${videoId}`, data),
+  createVideo: (videoData, videoFile, thumbnailFile) => {
+    const formData = new FormData();
+    formData.append('videoFile', videoFile);
+    formData.append('thumbnail', thumbnailFile);
+
+    Object.keys(videoData).forEach(key => formData.append(key, videoData[key]))
+    return api.post('/videos', formData);
+  },
+  updateVideo: (videoId, thumbnailFile, data) => {
+    const formData = new FormData();
+    formData.append('thumbnail', thumbnailFile);
+
+    Object.keys(data).forEach(key => formData.append(key, data[key]))
+    return api.patch(`/videos/${videoId}`, formData);
+  },
   deleteVideo: (videoId) => api.delete(`/videos/${videoId}`),
-  likeVideo: (videoId) => api.post(`/videos/${videoId}/like`),
-  unlikeVideo: (videoId) => api.delete(`/videos/${videoId}/like`),
-  getVideoSuggestions: (videoId, limit = 8) =>
-    api.get(`/videos/${videoId}/suggestions?limit=${limit}`),
+  togglePublishStatus: (videoId) => api.patch(`/videos/toggle/publish/${videoId}`),
 };
 
 // Comments APIs
 export const commentsAPI = {
-  getComments: (postId, page = 1, limit = 20) =>
-    api.get(`/posts/${postId}/comments?page=${page}&limit=${limit}`),
-  createComment: (postId, content) =>
-    api.post(`/posts/${postId}/comments`, { content }),
-  deleteComment: (commentId) => api.delete(`/comments/${commentId}`),
+  getVideoComments: (videoId, page = 1, limit = 20) => api.get(`/comments/video/${videoId}?page=${page}&limit=${limit}`),
+  addVideoComment: (videoId, content) => api.post(`/comments/video/${videoId}`, { content }),
+  updateVideoComment: (commentId, content) => api.patch(`/comments/${commentId}`, { content }),
+  deleteVideoComment: (commentId) => api.delete(`/comments/${commentId}`),
 };
 
-// Users APIs
-export const usersAPI = {
-  getUser: (userId) => api.get(`/users/${userId}`),
-  getUserPosts: (userId, page = 1, limit = 10) =>
-    api.get(`/users/${userId}/posts?page=${page}&limit=${limit}`),
-  getUserVideos: (userId, page = 1, limit = 10) =>
-    api.get(`/users/${userId}/videos?page=${page}&limit=${limit}`),
-  followUser: (userId) => api.post(`/users/${userId}/follow`),
-  unfollowUser: (userId) => api.delete(`/users/${userId}/follow`),
-};
+// Likes APIs
+export const likesApi = {
+  getLikedVideos: () => api.get('/likes'),
+  toggleVideoLike: (videoId) => api.post(`/likes/video/${videoId}`),
+  toggleTweetLike: (tweetId) => api.post(`/likes/tweet/${tweetId}`),
+  toggleCommentLike: (commentId) => api.post(`/likes/comment/${commentId}`)
+}
+
+// Dashboard APIs
+export const dashboardApi = {
+  getChannelVideos: (channelId, sortBy, sortType, cursor, limit) => 
+    api.get(`/dashboard/get-channel-videos?channelId=${channelId}&sortBy=${sortBy}&sortType=${sortType}&cursor=${cursor}&limit=${limit}`),
+  getChannelStats: (channelId) => api.get(`/dashboard/${channelId}`)
+}
 
 // Subscriptions APIs
 export const subscriptionsAPI = {
-  getSubscriptions: (page = 1, limit = 20) =>
-    api.get(`/subscriptions?page=${page}&limit=${limit}`),
-  subscribe: (channelId) => api.post(`/subscriptions/${channelId}`),
-  unsubscribe: (channelId) => api.delete(`/subscriptions/${channelId}`),
+  toggleSubscription: (channelId) => api.post(`/subscriptions/toggle/${channelId}`),
+  getChannelSubscribers: (channelId) => api.get(`/subscriptions/get-subscribers/${channelId}`),
+
+  getSubscribedChannels: (subscriberId) => api.get(`/subscriptions/get-subscribed-channels/${subscriberId}`),
 };
+
+// Playlist APIs
+export const playlistsApi = {
+  createPlaylist: (playlistData) => api.post('/playlists/create-playlist', playlistData),
+  getUserPlaylists: (userId, limit, cursor) => 
+    api.get(`/playlists/get-user-playlists?userId=${userId}&limit=${limit}&cursor=${cursor}`),
+  addVideoToPlaylist: (playlistId, videoId) => api.post(`/playlists/add-video/${playlistId}/${videoId}`),
+  removeVideoFromPlaylist: (playlistId, videoId) => api.patch(`/playlists/remove-video/${playlistId}/${videoId}`),
+  togglePlaylistPublicStatus: (playlistId) => api.patch(`/playlists/toggle-public-status/${playlistId}`),
+  getPlaylistById: (playlistId) => api.get(`/playlists/${playlistId}`),
+  deletePlaylist: (playlistId) => api.delete(`/playlists/${playlistId}`),
+  updatePlaylist: (playlistId, data) => api.patch(`/playlists/${playlistId}`, data),
+}
+
+// HealthCheck API
+export const healthCheckAPI = {
+  check: () => api.get('/healthcheck')
+}
 
 export default api;
