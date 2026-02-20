@@ -1,7 +1,4 @@
 import axios from 'axios';
-import { get } from 'mongoose';
-import { toggleSubscription } from '../../../backend/src/controllers/subscription.controller';
-import { updateComment } from '../../../backend/src/controllers/comment.controller';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 

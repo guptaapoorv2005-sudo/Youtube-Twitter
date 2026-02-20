@@ -9,33 +9,24 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // Check if user is logged in on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
-          const response = await authAPI.getCurrentUser();
-          setUser(response.data.data);
-        } catch (err) {
-          console.error('Auth check failed:', err);
-          localStorage.removeItem('accessToken');
-          setUser(null);
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
+  useEffect(async() => {
+    try {
+      const response = await authAPI.getCurrentUser();
+      setUser(response.data.data);
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      setUser(null);
+    }
+    setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (userData) => {
     try {
       setError(null);
-      const response = await authAPI.login(email, password);
-      const { accessToken, user: userData } = response.data.data;
-      localStorage.setItem('accessToken', accessToken);
-      setUser(userData);
-      return userData;
+      const response = await authAPI.login(userData);
+      const userDetails = response.data.data;
+      setUser(userDetails);
+      return userDetails;
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed';
       setError(message);
@@ -47,10 +38,9 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authAPI.register(userData);
-      const { accessToken, user: newUser } = response.data.data;
-      localStorage.setItem('accessToken', accessToken);
-      setUser(newUser);
-      return newUser;
+      const userDetails = response.data.data;
+      setUser(userDetails);
+      return userDetails;
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed';
       setError(message);
@@ -64,7 +54,6 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      localStorage.removeItem('accessToken');
       setUser(null);
     }
   };

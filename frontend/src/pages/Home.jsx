@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { postsAPI } from '../services/api';
+import { tweetsAPI } from '../services/api';
 import { FeedList } from '../components/feed/FeedList';
 import { CreatePostCard } from '../components/feed/CreatePostCard';
 import { Loader } from '../components/common/Loader';
@@ -10,7 +10,7 @@ import { AlertCircle } from 'lucide-react';
 
 export const Home = () => {
   const { user } = useAuth();
-  const [posts, setPosts] = useState([]);
+  const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -19,11 +19,11 @@ export const Home = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await postsAPI.getFeed(page, 10);
+      const response = await tweetsAPI.getFeed(page, 10);
       if (page === 1) {
-        setPosts(response.data.data);
+        setTweets(response.data.data);
       } else {
-        setPosts((prev) => [...prev, ...response.data.data]);
+        setTweets((prev) => [...prev, ...response.data.data]);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load feed');
@@ -40,9 +40,9 @@ export const Home = () => {
   const handleLike = async (postId, isLiked) => {
     try {
       if (isLiked) {
-        await postsAPI.likePost(postId);
+        await tweetsAPI.likePost(postId);
       } else {
-        await postsAPI.unlikePost(postId);
+        await tweetsAPI.unlikePost(postId);
       }
     } catch (err) {
       console.error('Like error:', err);
@@ -51,8 +51,8 @@ export const Home = () => {
 
   const handleCreatePost = async (content) => {
     try {
-      const response = await postsAPI.createPost(content);
-      setPosts((prev) => [response.data.data, ...prev]);
+      const response = await tweetsAPI.createPost(content);
+      setTweets((prev) => [response.data.data, ...prev]);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create post');
     }
@@ -86,7 +86,7 @@ export const Home = () => {
       {/* Feed */}
       {!loading && !error && (
         <FeedList
-          posts={posts}
+          posts={tweets}
           isLoading={false}
           onLike={handleLike}
           onComment={(postId) => console.log('Comment on', postId)}
