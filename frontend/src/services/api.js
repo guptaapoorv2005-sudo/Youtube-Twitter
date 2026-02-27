@@ -27,7 +27,8 @@ api.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      originalRequest.url !== "/users/refresh-token"
     ) {
       originalRequest._retry = true;
 
@@ -53,7 +54,7 @@ api.interceptors.response.use(
         isRefreshing = false;
         processQueue(refreshError);
 
-        window.location.href = "/login";
+        window.dispatchEvent(new Event("auth:logout"));
         return Promise.reject(refreshError);
       }
     }

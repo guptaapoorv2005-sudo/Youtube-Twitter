@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -21,10 +21,8 @@ const registerUser = asyncHandler(async (req,res)=>{
 
     const {username, email, password, fullName} = req.body    //req.body mai frontend se aya hua data hota hai
 
-    if(
-        [username, email, password, fullName].some((field)=> field?.trim() === "")
-    ){
-        throw new ApiError(400,"All fields are required")
+    if(!username?.trim() || !email?.trim() || !password?.trim() || !fullName?.trim()){
+        throw new ApiError(400, "All fields are required")
     }
 
     let avatarLocalPath;
@@ -43,7 +41,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     const existedUser = await User.findOne({
-        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim() }]
+        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim().toLowerCase() }]
     })
     // console.log("existedUser: ",existedUser)
     if(existedUser){
@@ -61,7 +59,7 @@ const registerUser = asyncHandler(async (req,res)=>{
 
     const user = await User.create({        //ye method DB mai data entry karne ke baad sara data return karta hai
         username: username.trim().toLowerCase(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         fullName: fullName.trim(),
         avatar: avatar.url,
@@ -103,7 +101,7 @@ const loginUser = asyncHandler(async (req,res)=>{
     }
 
     const user = await User.findOne({
-        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim() }]
+        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim().toLowerCase() }]
     })
     if(!user){
         throw new ApiError(404, "No user found")
@@ -302,17 +300,21 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
         throw new ApiError(400, "Error while uploading avatar")
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set: {avatar: avatar.url}
-        },
-        {new: true}
-    ).select("-password -refreshToken")
+    const user = await User.findById(req.user._id)
+
+    await deleteFromCloudinary(user.avatar)
+
+    user.avatar = avatar.url
+
+    await user.save({validateBeforeSave: false})
+
+    const updatedUser = user.toObject()
+    delete updatedUser.password
+    delete updatedUser.refreshToken
 
     return res
     .status(200)
-    .json(new ApiResponse(200, user, "Avatar updated successfully"))
+    .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"))
 })
 
 const updateUserCoverImage = asyncHandler(async (req,res)=>{
@@ -326,17 +328,22 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
         throw new ApiError(400, "Error while uploading cover image")
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set: {coverImage: coverImage.url}
-        },
-        {new: true}
-    ).select("-password -refreshToken")
+    const user = await User.findById(req.user._id)
+
+    if(user.coverImage){
+        await deleteFromCloudinary(user.coverImage)
+    }
+
+    user.coverImage = coverImage.url
+    await user.save({validateBeforeSave: false})
+
+    const updatedUser = user.toObject()
+    delete updatedUser.password
+    delete updatedUser.refreshToken
 
     return res
     .status(200)
-    .json(new ApiResponse(200, user, "Cover image updated successfully"))
+    .json(new ApiResponse(200, updatedUser, "Cover image updated successfully"))
 })
 
 const getUserChannelProfile = asyncHandler(async (req,res)=>{

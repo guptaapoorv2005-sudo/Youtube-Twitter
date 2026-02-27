@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />; //"replace" prevents user from pressing "Back" and returning to the previous page
   }
 
   return children;

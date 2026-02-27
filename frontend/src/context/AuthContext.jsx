@@ -9,15 +9,32 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // Check if user is logged in on mount
-  useEffect(async() => {
-    try {
-      const response = await authAPI.getCurrentUser();
-      setUser(response.data.data);
-    } catch (err) {
-      console.error('Auth check failed:', err);
+  //Never write useEffect(async () => {}).
+  // Async functions return a Promise, but useEffect must return only a cleanup function or nothing.
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await authAPI.getCurrentUser();
+        setUser(response.data.data);
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    const handleAutoLogout = () => {
       setUser(null);
-    }
-    setLoading(false);
+    };
+
+    window.addEventListener("auth:logout", handleAutoLogout);
+
+    return () => {  //cleanup function, it will run when AuthProvider unmounts
+      window.removeEventListener("auth:logout", handleAutoLogout);
+    };
   }, []);
 
   const login = async (userData) => {
@@ -34,10 +51,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (userData, avatarFile, coverImageFile) => {
     try {
       setError(null);
-      const response = await authAPI.register(userData);
+      const response = await authAPI.register(userData, avatarFile, coverImageFile);
       const userDetails = response.data.data;
       setUser(userDetails);
       return userDetails;
