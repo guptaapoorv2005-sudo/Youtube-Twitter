@@ -10,13 +10,15 @@ import { deleteTweet, updateTweet } from '../api/tweetApi';
 
 export default function TweetCard({ tweet, onDelete, onUpdate }) {
   const { user } = useAuth();
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(tweet.likedStatus ?? false);
+  const [likesCount, setLikesCount] = useState(tweet.likesCount ?? 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(tweet.content);
   const [likeLoading, setLikeLoading] = useState(false);
 
-  const isOwner = user?._id === tweet.owner?._id || user?._id === tweet.owner;
+  // Use editableStatus from backend when available, fall back to manual check
+  const isOwner = tweet.editableStatus ?? (user?._id === tweet.owner?._id || user?._id === tweet.owner);
   const ownerData = typeof tweet.owner === 'object' ? tweet.owner : null;
 
   const handleLike = async () => {
@@ -24,7 +26,9 @@ export default function TweetCard({ tweet, onDelete, onUpdate }) {
     setLikeLoading(true);
     try {
       const result = await toggleTweetLike(tweet._id);
-      setLiked(result.liked);
+      const nowLiked = result.liked;
+      setLiked(nowLiked);
+      setLikesCount((prev) => prev + (nowLiked ? 1 : -1));
     } catch (err) {
       console.error('Like failed:', err);
     } finally {
@@ -154,7 +158,7 @@ export default function TweetCard({ tweet, onDelete, onUpdate }) {
               }`}
             >
               <Heart className={`h-3.5 w-3.5 ${liked ? 'fill-current' : ''}`} />
-              {liked ? 'Liked' : 'Like'}
+              {likesCount > 0 ? likesCount : ''} {liked ? 'Liked' : 'Like'}
             </button>
           </div>
         </div>

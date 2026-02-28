@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, MessageCircle, Plus, Send } from 'lucide-react';
+import { Film, MessageCircle, Send } from 'lucide-react';
 import { getAllVideos } from '../api/videoApi';
-import { createTweet, getUserTweets } from '../api/tweetApi';
+import { createTweet, getAllTweets } from '../api/tweetApi';
 import { useAuth } from '../hooks/useAuth';
 import VideoCard from '../components/VideoCard';
 import TweetCard from '../components/TweetCard';
@@ -24,6 +24,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [tweetCursor, setTweetCursor] = useState(null);
+  const [hasMoreTweets, setHasMoreTweets] = useState(true);
 
   // Tweet compose
   const [tweetContent, setTweetContent] = useState('');
@@ -50,20 +52,21 @@ export default function Home() {
     }
   }, [searchQuery]);
 
-  const fetchTweets = useCallback(async () => {
-    if (!user?._id) return;
+  const fetchTweets = useCallback(async (cursor = null, append = false) => {
     try {
       setLoading(true);
       setError('');
-      // No "all tweets feed" endpoint exists — fetch current user's tweets as fallback
-      const data = await getUserTweets(user._id);
-      setTweets(Array.isArray(data) ? data : []);
+      const data = await getAllTweets({ limit: 10, cursor: cursor || undefined });
+      const list = data.tweets || [];
+      setTweets((prev) => (append ? [...prev, ...list] : list));
+      setTweetCursor(data.nextCursor || null);
+      setHasMoreTweets(!!data.nextCursor);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load tweets');
     } finally {
       setLoading(false);
     }
-  }, [user?._id]);
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -85,7 +88,11 @@ export default function Home() {
     setPosting(true);
     try {
       const newTweet = await createTweet(tweetContent.trim());
-      setTweets((prev) => [newTweet, ...prev]);
+      // Enrich with fields the feed endpoint provides so TweetCard works correctly
+      setTweets((prev) => [
+        { ...newTweet, likesCount: 0, likedStatus: false, editableStatus: true },
+        ...prev,
+      ]);
       setTweetContent('');
     } catch (err) {
       console.error('Post tweet failed:', err);
@@ -216,12 +223,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Note about missing feed */}
-            <div className="rounded-xl border border-dark-700/50 bg-dark-800/50 px-4 py-3 text-xs text-dark-400">
-              <Plus className="mr-1 inline h-3 w-3" />
-              Showing your tweets. A global feed requires a backend controller.
-            </div>
-
             {error ? (
               <ErrorState message={error} onRetry={fetchTweets} />
             ) : loading && tweets.length === 0 ? (
@@ -233,14 +234,23 @@ export default function Home() {
                 description="Share your first thought with the world!"
               />
             ) : (
-              tweets.map((tweet) => (
-                <TweetCard
-                  key={tweet._id}
-                  tweet={tweet}
-                  onDelete={handleTweetDelete}
-                  onUpdate={handleTweetUpdate}
-                />
-              ))
+              <>
+                {tweets.map((tweet) => (
+                  <TweetCard
+                    key={tweet._id}
+                    tweet={tweet}
+                    onDelete={handleTweetDelete}
+                    onUpdate={handleTweetUpdate}
+                  />
+                ))}
+                {hasMoreTweets && (
+                  <div className="flex justify-center pt-2">
+                    <Button variant="secondary" size="sm" onClick={() => fetchTweets(tweetCursor, true)} loading={loading}>
+                      Load more
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         )}

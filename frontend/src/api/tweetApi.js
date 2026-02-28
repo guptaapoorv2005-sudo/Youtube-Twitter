@@ -5,9 +5,20 @@ export const createTweet = async (content) => {
   return data.data;
 };
 
-export const getUserTweets = async (userId) => {
-  const { data } = await api.get(`/tweets/user/${userId}`);
-  return data.data; // Array of tweets
+/**
+ * Fetch tweets with cursor-based pagination.
+ * @param {Object} options
+ * @param {string} [options.userId]  - Filter by user (omit for global feed)
+ * @param {number} [options.limit=10] - Items per page (max 50)
+ * @param {string} [options.cursor]  - ISO date string for next page
+ * @returns {{ tweets: Array, nextCursor: string|null }}
+ */
+export const getAllTweets = async ({ userId, limit = 10, cursor } = {}) => {
+  const params = { limit };
+  if (userId) params.userId = userId;
+  if (cursor) params.cursor = cursor;
+  const { data } = await api.get('/tweets/allTweets', { params });
+  return data.data; // { tweets, nextCursor }
 };
 
 export const updateTweet = async (tweetId, content) => {
@@ -18,12 +29,4 @@ export const updateTweet = async (tweetId, content) => {
 export const deleteTweet = async (tweetId) => {
   const { data } = await api.delete(`/tweets/${tweetId}`);
   return data.data;
-};
-
-// TODO: Backend controller required: GET /api/v1/tweets?page=1&limit=10
-// A "get all tweets" feed endpoint to show tweets from all users.
-// Currently only getUserTweets (per user) exists.
-export const getAllTweets = async ({ page = 1, limit = 20 } = {}) => {
-  // TODO: Implement backend controller for this endpoint
-  throw new Error('Backend controller not implemented yet: GET /api/v1/tweets (feed)');
 };

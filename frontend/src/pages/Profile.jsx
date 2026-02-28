@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Film, MessageCircle, Users, Eye, ThumbsUp, Video } from 'lucide-react';
 import { getUserChannelProfile } from '../api/userApi';
 import { getChannelStats, getChannelVideos } from '../api/dashboardApi';
-import { getUserTweets } from '../api/tweetApi';
+import { getAllTweets } from '../api/tweetApi';
 import { toggleSubscription } from '../api/subscriptionApi';
 import { useAuth } from '../hooks/useAuth';
 import VideoCard from '../components/VideoCard';
@@ -32,6 +32,8 @@ export default function Profile() {
   const [contentLoading, setContentLoading] = useState(true);
   const [videoCursor, setVideoCursor] = useState(null);
   const [hasMoreVideos, setHasMoreVideos] = useState(true);
+  const [tweetCursor, setTweetCursor] = useState(null);
+  const [hasMoreTweets, setHasMoreTweets] = useState(true);
 
   const fetchChannel = useCallback(async () => {
     try {
@@ -68,12 +70,15 @@ export default function Profile() {
     }
   }, [channel?._id]);
 
-  const fetchTweets = useCallback(async () => {
+  const fetchTweets = useCallback(async (cursor = null, append = false) => {
     if (!channel?._id) return;
     try {
       setContentLoading(true);
-      const data = await getUserTweets(channel._id);
-      setTweets(Array.isArray(data) ? data : []);
+      const data = await getAllTweets({ userId: channel._id, limit: 10, cursor: cursor || undefined });
+      const list = data.tweets || [];
+      setTweets((prev) => (append ? [...prev, ...list] : list));
+      setTweetCursor(data.nextCursor || null);
+      setHasMoreTweets(!!data.nextCursor);
     } catch (err) {
       console.error('Fetch tweets failed:', err);
     } finally {
@@ -259,14 +264,28 @@ export default function Profile() {
             ) : tweets.length === 0 ? (
               <EmptyState icon={MessageCircle} title="No tweets" description="This channel hasn't posted any tweets yet." />
             ) : (
-              tweets.map((tweet) => (
-                <TweetCard
-                  key={tweet._id}
-                  tweet={tweet}
-                  onDelete={isOwnProfile ? handleTweetDelete : undefined}
-                  onUpdate={isOwnProfile ? handleTweetUpdate : undefined}
-                />
-              ))
+              <>
+                {tweets.map((tweet) => (
+                  <TweetCard
+                    key={tweet._id}
+                    tweet={tweet}
+                    onDelete={isOwnProfile ? handleTweetDelete : undefined}
+                    onUpdate={isOwnProfile ? handleTweetUpdate : undefined}
+                  />
+                ))}
+                {hasMoreTweets && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => fetchTweets(tweetCursor, true)}
+                      loading={contentLoading}
+                    >
+                      Load more
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         )}

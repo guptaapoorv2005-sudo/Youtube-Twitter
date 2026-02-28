@@ -24,19 +24,6 @@ const createTweet = asyncHandler(async (req,res) => {
     .json(new ApiResponse(201, tweet, "Tweet created successfully"))
 })
 
-const getUserTweets = asyncHandler(async (req, res) => {
-    const {userId} = req.params
-    if(!userId || !mongoose.Types.ObjectId.isValid(userId)){
-        throw new ApiError(400, "Invalid user id")
-    }
-
-    const userTweets = await Tweet.find({owner: userId}).sort({createdAt: -1})
-
-    return res
-    .status(200)
-    .json(new ApiResponse(200,userTweets,"User tweets fetched successfully"))
-})
-
 const updateTweet = asyncHandler(async (req,res) => {
     const {tweetId} = req.params
     if(!tweetId || !mongoose.Types.ObjectId.isValid(tweetId)){
@@ -89,9 +76,104 @@ const deleteTweet = asyncHandler(async (req,res) => {
     .status(200)
     .json(new ApiResponse(200,{},"Tweet deleted successfully"))
 })
+
+const getAllTweets = asyncHandler(async (req,res) => {
+    const {userId, limit = 10, cursor} = req.query
+
+    const parsedLimit = Number.parseInt(limit, 10)
+    if(Number.isNaN(parsedLimit)){
+        throw new ApiError(400, "Invalid limit value")
+    }
+    const limitNumber = Math.min(Math.max(parsedLimit,1),50)
+    
+    const matchStage = {}
+    if(cursor){
+        const cursorDate = new Date(cursor)
+        if(Number.isNaN(cursorDate.getTime())){
+            throw new ApiError(400, "Invalid cursor value")
+        }
+        matchStage.createdAt = {$lt: cursorDate}
+    }
+
+    if(userId){
+        if(!mongoose.Types.ObjectId.isValid(userId)){
+            throw new ApiError(400, "Invalid user id")
+        }
+        matchStage.owner = new mongoose.Types.ObjectId(userId)
+    }
+
+    const currentUserId = new mongoose.Types.ObjectId(req.user._id)
+
+    const tweets = await Tweet.aggregate([
+        {
+            $match: matchStage
+        },
+        {
+            $sort: {createdAt: -1}
+        },
+        {
+            $limit: limitNumber
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            fullName: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: "$owner"
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "tweet",
+                as: "allLikes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: {$size: "$allLikes"},
+                likedStatus: {
+                    $in: [currentUserId, "$allLikes.likedBy"]
+                },
+                editableStatus: {
+                    $eq: ["$owner._id", currentUserId]
+                }
+            }
+        },
+        {
+            $project: {
+                owner: 1,
+                content: 1,
+                createdAt: 1,
+                likesCount: 1,
+                likedStatus: 1,
+                editableStatus: 1
+            }
+        }
+    ])
+
+    const nextCursor = tweets.length === limitNumber ? tweets[tweets.length - 1].createdAt : null
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {tweets, nextCursor}, "Tweets fetched successfully"))
+})
 export {
     createTweet,
-    getUserTweets,
     updateTweet,
-    deleteTweet
+    deleteTweet,
+    getAllTweets
 }
