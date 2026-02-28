@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ThumbsUp,
@@ -9,8 +9,9 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  Trash2,
 } from 'lucide-react';
-import { getVideoById, incrementVideoView } from '../api/videoApi';
+import { getVideoById, incrementVideoView, deleteVideo } from '../api/videoApi';
 import { addToWatchHistory } from '../api/watchHistoryApi';
 import { getVideoComments, addComment } from '../api/commentApi';
 import { toggleVideoLike } from '../api/likeApi';
@@ -26,6 +27,7 @@ import { timeAgo, formatViews } from '../utils/formatters';
 
 export default function Watch() {
   const { videoId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [video, setVideo] = useState(null);
@@ -43,6 +45,7 @@ export default function Watch() {
   const [showDescription, setShowDescription] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchVideo = useCallback(async () => {
     try {
@@ -89,6 +92,18 @@ export default function Watch() {
       setLikesCount((prev) => prev + (nowLiked ? 1 : -1));
     } catch (err) {
       console.error('Like failed:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this video? This action cannot be undone.')) return;
+    try {
+      setDeleting(true);
+      await deleteVideo(videoId);
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setDeleting(false);
     }
   };
 
@@ -213,6 +228,16 @@ export default function Watch() {
                 <ListPlus className="h-4 w-4" />
                 Save
               </button>
+              {user && owner._id === user._id && (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex items-center gap-1.5 rounded-xl border border-red-500/30 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              )}
             </div>
           </div>
 
