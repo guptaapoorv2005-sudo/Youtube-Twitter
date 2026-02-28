@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Film } from 'lucide-react';
-import { getPlaylistById } from '../api/playlistApi';
+import { ArrowLeft, Film, X } from 'lucide-react';
+import { getPlaylistById, removeVideoFromPlaylist } from '../api/playlistApi';
+import { useAuth } from '../hooks/useAuth';
 import VideoCard from '../components/VideoCard';
 import { VideoCardSkeleton, Skeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -11,9 +12,11 @@ import Avatar from '../components/ui/Avatar';
 
 export default function PlaylistDetail() {
   const { playlistId } = useParams();
+  const { user } = useAuth();
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [removing, setRemoving] = useState(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -49,6 +52,22 @@ export default function PlaylistDetail() {
 
   const owner = playlist.owner || {};
   const videos = playlist.videos || [];
+  const isOwner = user?._id === owner._id;
+
+  const handleRemoveVideo = async (videoId) => {
+    try {
+      setRemoving(videoId);
+      await removeVideoFromPlaylist(playlistId, videoId);
+      setPlaylist((prev) => ({
+        ...prev,
+        videos: prev.videos.filter((v) => v._id !== videoId),
+      }));
+    } catch (err) {
+      console.error('Failed to remove video:', err);
+    } finally {
+      setRemoving(null);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -84,7 +103,23 @@ export default function PlaylistDetail() {
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {videos.map((video) => (
-            <VideoCard key={video._id} video={video} />
+            <div key={video._id} className="group/card relative">
+              <VideoCard video={video} />
+              {isOwner && (
+                <button
+                  onClick={() => handleRemoveVideo(video._id)}
+                  disabled={removing === video._id}
+                  title="Remove from playlist"
+                  className="absolute right-2 top-2 z-10 rounded-lg bg-black/70 p-1.5 text-dark-300 opacity-0 backdrop-blur-sm transition-all hover:bg-red-500/80 hover:text-white group-hover/card:opacity-100 disabled:opacity-50"
+                >
+                  {removing === video._id ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

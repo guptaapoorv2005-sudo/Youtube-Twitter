@@ -123,10 +123,11 @@ const addComment = asyncHandler(async (req,res) => {
         throw new ApiError(500, "Error while creating comment")
     }
 
-    comment.likesCount = 0
-    comment.likedStatus = false
-    comment.editableStatus = true
-    comment.owner = {
+    const commentObj = comment.toObject() // if we change owner of comment to full object instead of just id, we need to convert it to object first otherwise mongoose will automatically revert it back to id
+    commentObj.likesCount = 0
+    commentObj.likedStatus = false
+    commentObj.editableStatus = true
+    commentObj.owner = {
         _id: req.user._id,
         username: req.user.username,
         fullName: req.user.fullName,
@@ -134,7 +135,7 @@ const addComment = asyncHandler(async (req,res) => {
     }
     return res
     .status(200)
-    .json(new ApiResponse(201,comment,"Comment added successfully"))
+    .json(new ApiResponse(201,commentObj,"Comment added successfully"))
 })
 
 const updateComment = asyncHandler(async (req,res) => {
@@ -163,10 +164,11 @@ const updateComment = asyncHandler(async (req,res) => {
         throw new ApiError(404,"Comment not found or Forbidden request")
     }
 
-    updatedComment.likesCount = await Like.countDocuments({comment: updatedComment._id})
-    updatedComment.likedStatus = await Like.exists({comment: updatedComment._id, likedBy: req.user._id})
-    updatedComment.editableStatus = true
-    updatedComment.owner = {
+    const commentObj = updatedComment.toObject()
+    commentObj.likesCount = await Like.countDocuments({comment: updatedComment._id})
+    commentObj.likedStatus = await Like.exists({comment: updatedComment._id, likedBy: req.user._id})
+    commentObj.editableStatus = true
+    commentObj.owner = {
         _id: req.user._id,
         username: req.user.username,
         fullName: req.user.fullName,
@@ -174,7 +176,7 @@ const updateComment = asyncHandler(async (req,res) => {
     }
     return res
     .status(200)
-    .json(new ApiResponse(200,updatedComment,"Comment updated successfully"))
+    .json(new ApiResponse(200,commentObj,"Comment updated successfully"))
 })
 
 const deleteComment = asyncHandler(async (req,res) => {

@@ -3,12 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ThumbsUp,
-  ThumbsDown,
   Share2,
   ListPlus,
   Send,
   ChevronDown,
   ChevronUp,
+  Check,
 } from 'lucide-react';
 import { getVideoById, incrementVideoView } from '../api/videoApi';
 import { addToWatchHistory } from '../api/watchHistoryApi';
@@ -21,6 +21,7 @@ import CommentCard from '../components/CommentCard';
 import { Skeleton, CommentSkeleton } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 import EmptyState from '../components/ui/EmptyState';
+import SaveToPlaylistModal from '../components/SaveToPlaylistModal';
 import { timeAgo, formatViews } from '../utils/formatters';
 
 export default function Watch() {
@@ -40,6 +41,8 @@ export default function Watch() {
   const [commentPage, setCommentPage] = useState(1);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [showDescription, setShowDescription] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
   const fetchVideo = useCallback(async () => {
     try {
@@ -116,9 +119,8 @@ export default function Watch() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4">
+      <div className="mx-auto max-w-4xl">
+        <div className="space-y-4">
             <Skeleton className="aspect-video w-full rounded-2xl" />
             <Skeleton className="h-8 w-3/4" />
             <div className="flex gap-3">
@@ -128,7 +130,6 @@ export default function Watch() {
                 <Skeleton className="h-3 w-20" />
               </div>
             </div>
-          </div>
         </div>
       </div>
     );
@@ -143,10 +144,8 @@ export default function Watch() {
   const owner = video.owner || {};
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Video + Info */}
-        <div className="lg:col-span-2 space-y-4">
+    <div className="mx-auto max-w-4xl">
+        <div className="space-y-4">
           {/* Video player */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -195,16 +194,22 @@ export default function Watch() {
                   <ThumbsUp className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
                   {likesCount > 0 && <span>{likesCount}</span>}
                 </button>
-                <div className="w-px bg-dark-700" />
-                <button className="px-3 py-2 text-dark-400 hover:bg-dark-800 transition-colors">
-                  <ThumbsDown className="h-4 w-4" />
-                </button>
               </div>
-              <button className="flex items-center gap-1.5 rounded-xl border border-dark-700 px-4 py-2 text-sm text-dark-300 hover:bg-dark-800 transition-colors">
-                <Share2 className="h-4 w-4" />
-                Share
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-dark-700 px-4 py-2 text-sm text-dark-300 hover:bg-dark-800 transition-colors"
+              >
+                {copied ? <Check className="h-4 w-4 text-green-400" /> : <Share2 className="h-4 w-4" />}
+                {copied ? 'Copied!' : 'Share'}
               </button>
-              <button className="flex items-center gap-1.5 rounded-xl border border-dark-700 px-4 py-2 text-sm text-dark-300 hover:bg-dark-800 transition-colors">
+              <button
+                onClick={() => setShowPlaylistModal(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-dark-700 px-4 py-2 text-sm text-dark-300 hover:bg-dark-800 transition-colors"
+              >
                 <ListPlus className="h-4 w-4" />
                 Save
               </button>
@@ -295,12 +300,11 @@ export default function Watch() {
           </div>
         </div>
 
-        {/* Sidebar placeholder — related videos area */}
-        <div className="hidden lg:block">
-          <h3 className="mb-3 text-sm font-semibold text-dark-300">Up Next</h3>
-          <p className="text-xs text-dark-500">Related videos will appear here.</p>
-        </div>
-      </div>
+      <SaveToPlaylistModal
+        isOpen={showPlaylistModal}
+        onClose={() => setShowPlaylistModal(false)}
+        videoId={videoId}
+      />
     </div>
   );
 }

@@ -20,12 +20,19 @@ const createTweet = asyncHandler(async (req,res) => {
         throw new ApiError(500, "Internal server error")
     }
 
-    tweet.likesCount = 0
-    tweet.likedStatus = false
-    tweet.editableStatus = true
+    const tweetObj = tweet.toObject()
+    tweetObj.likesCount = 0
+    tweetObj.likedStatus = false
+    tweetObj.editableStatus = true
+    tweetObj.owner = {
+        _id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        avatar: req.user.avatar
+    }
     return res
     .status(201)
-    .json(new ApiResponse(201, tweet, "Tweet created successfully"))
+    .json(new ApiResponse(201, tweetObj, "Tweet created successfully"))
 })
 
 const updateTweet = asyncHandler(async (req,res) => {
@@ -54,12 +61,19 @@ const updateTweet = asyncHandler(async (req,res) => {
         throw new ApiError(403, "Forbidden request or invalid tweet id")
     }
 
-    updatedTweet.likesCount = await Like.countDocuments({tweet: updatedTweet._id})
-    updatedTweet.likedStatus = await Like.exists({tweet: updatedTweet._id, likedBy: req.user._id})
-    updatedTweet.editableStatus = true
+    const updatedTweetObj = updatedTweet.toObject()
+    updatedTweetObj.likesCount = await Like.countDocuments({tweet: updatedTweet._id})
+    updatedTweetObj.likedStatus = await Like.exists({tweet: updatedTweet._id, likedBy: req.user._id})
+    updatedTweetObj.editableStatus = true
+    updatedTweetObj.owner = {
+        _id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        avatar: req.user.avatar
+    }
     return res
     .status(200)
-    .json(new ApiResponse(200,updatedTweet,"Tweet updated successfully"))
+    .json(new ApiResponse(200,updatedTweetObj,"Tweet updated successfully"))
 })
 
 const deleteTweet = asyncHandler(async (req,res) => {

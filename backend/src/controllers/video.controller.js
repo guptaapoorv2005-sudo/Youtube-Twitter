@@ -357,9 +357,20 @@ const updateVideo = asyncHandler(async (req,res) => {
         {new: true}
     )
 
+    const updatedVideoObj = updatedVideo.toObject()
+    updatedVideoObj.likesCount = await Like.countDocuments({video: updatedVideo._id})
+    updatedVideoObj.likedStatus = await Like.exists({video: updatedVideo._id, likedBy: req.user._id})
+    updatedVideoObj.editableStatus = true
+    updatedVideoObj.owner = {
+        _id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        avatar: req.user.avatar
+    }
+
     return res
     .status(200)
-    .json(new ApiResponse(200,updatedVideo, "Video updated successfully"))
+    .json(new ApiResponse(200,updatedVideoObj, "Video updated successfully"))
 })
 
 const deleteVideo = asyncHandler(async (req,res) => {
@@ -424,9 +435,20 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Video not found or Forbidden request")
     }
 
+    const updatedVideoObj = updatedVideo.toObject()
+    updatedVideoObj.likesCount = await Like.countDocuments({video: updatedVideo._id})
+    updatedVideoObj.likedStatus = await Like.exists({video: updatedVideo._id, likedBy: req.user._id})
+    updatedVideoObj.editableStatus = true
+    updatedVideoObj.owner = {
+        _id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        avatar: req.user.avatar
+    }
+
     return res
     .status(200)
-    .json(new ApiResponse(200,updatedVideo,"Publish status toggled successfully"))
+    .json(new ApiResponse(200,updatedVideoObj,"Publish status toggled successfully"))
 })
 
 const updateVideoViews = asyncHandler(async (req, res) => {
