@@ -175,11 +175,66 @@ const getPlaylistById = asyncHandler(async (req, res) => {
                         $sort: {
                             createdAt: -1,
                         },
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        avatar: 1,
+                                        fullName: 1,
+                                        username: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $unwind: "$owner"
+                    },
+                    {
+                        $lookup: {
+                            from: "comments",
+                            localField: "_id",
+                            foreignField: "video",
+                            as: "comments",
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "likes",
+                            localField: "_id",
+                            foreignField: "video",
+                            as: "likes",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            likesCount: {$size: "$likes"},
+                            commentsCount: {$size: "$comments"},
+                            likedStatus: {
+                                $in: [req.user._id, "$likes.likedBy"]
+                            },
+                            editableStatus: {
+                                $eq: [new mongoose.Types.ObjectId(req.user._id), "$owner"]
+                            }
+                        }
+                    },
+                    {
                         $project: {
+                            owner: 1,
                             thumbnail: 1,
                             title: 1,
                             duration: 1,
                             views: 1,
+                            likesCount: 1,
+                            commentsCount: 1,
+                            likedStatus: 1,
+                            editableStatus: 1
                         }
                     }
                 ]
@@ -229,7 +284,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     })
 
     if(!deletedPlaylist){
-        throw new ApiError(404, "Playist not found or Forbidden request")
+        throw new ApiError(404, "Playlist not found or Forbidden request")
     }
 
     return res
@@ -268,7 +323,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     );
     
     if(!updatedPlaylist){
-        throw new ApiError(404, "Playlist not found or anouthorized request")
+        throw new ApiError(404, "Playlist not found or unauthorized request")
     }
 
     return res

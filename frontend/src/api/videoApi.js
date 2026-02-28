@@ -39,9 +39,11 @@ export const togglePublishStatus = async (videoId) => {
   return data.data;
 };
 
-// TODO: Backend controller required: PATCH /api/v1/videos/:videoId/view
-// Increment view count for a video. Currently no endpoint exists.
+/**
+ * Increment view count for a video.
+ * @param {string} videoId
+ */
 export const incrementVideoView = async (videoId) => {
-  // TODO: Implement backend controller for this endpoint
-  console.warn(`[STUB] incrementVideoView(${videoId}) - backend controller not implemented`);
+  const { data } = await api.patch(`/videos/update-views/${videoId}`);
+  return data.data;
 };

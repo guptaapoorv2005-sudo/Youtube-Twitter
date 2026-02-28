@@ -14,16 +14,23 @@ export default function Subscriptions() {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalPages: 1, hasNextPage: false, hasPrevPage: false });
 
   useEffect(() => {
     const fetch = async () => {
       if (!user?._id) return;
       try {
         setLoading(true);
-        const data = await getSubscribedChannels(user._id);
-        // Each item is { channel: { username, fullName, avatar } }
-        const mapped = (Array.isArray(data) ? data : []).map((item) => item.channel).filter(Boolean);
+        const data = await getSubscribedChannels(user._id, page, 10);
+        const docs = Array.isArray(data?.docs) ? data.docs : [];
+        const mapped = docs.map((item) => item.channel).filter(Boolean);
         setChannels(mapped);
+        setPagination({
+          totalPages: data?.totalPages || 1,
+          hasNextPage: data?.hasNextPage || false,
+          hasPrevPage: data?.hasPrevPage || false,
+        });
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load subscriptions');
       } finally {
@@ -31,7 +38,7 @@ export default function Subscriptions() {
       }
     };
     fetch();
-  }, [user?._id]);
+  }, [user?._id, page]);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -85,6 +92,29 @@ export default function Subscriptions() {
               </Link>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && !error && channels.length > 0 && (pagination.hasPrevPage || pagination.hasNextPage) && (
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={!pagination.hasPrevPage}
+            className="rounded-lg border border-dark-700 bg-dark-900 px-4 py-2 text-sm font-medium text-dark-100 transition-colors hover:bg-dark-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-dark-400">
+            Page {page} of {pagination.totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!pagination.hasNextPage}
+            className="rounded-lg border border-dark-700 bg-dark-900 px-4 py-2 text-sm font-medium text-dark-100 transition-colors hover:bg-dark-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

@@ -68,8 +68,9 @@ const getChannelVideos = asyncHandler(async (req,res) => {
 
     const videos = await Video.find(matchStage)
         .sort(sortStage)
+        .populate("owner", "username fullName avatar")
+        .select("-description")
         .limit(limitNumber)
-        .select("-owner -description")
 
     let nextCursor;
     if(sortField === "createdAt"){

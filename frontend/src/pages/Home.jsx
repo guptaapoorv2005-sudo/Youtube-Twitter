@@ -88,11 +88,7 @@ export default function Home() {
     setPosting(true);
     try {
       const newTweet = await createTweet(tweetContent.trim());
-      // Enrich with fields the feed endpoint provides so TweetCard works correctly
-      setTweets((prev) => [
-        { ...newTweet, likesCount: 0, likedStatus: false, editableStatus: true },
-        ...prev,
-      ]);
+      setTweets((prev) => [newTweet, ...prev]);
       setTweetContent('');
     } catch (err) {
       console.error('Post tweet failed:', err);

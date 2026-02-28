@@ -29,6 +29,7 @@ import commentRouter from "./routes/comment.routes.js"
 import likeRouter from "./routes/like.routes.js"
 import dashboardRouter from "./routes/dashboard.routes.js"
 import playlistRouter from "./routes/playlist.routes.js"
+import watchHistoryRouter from "./routes/watchHistory.routes.js"
 
 //routes declare
 app.use("/api/v1/users",userRouter)
@@ -40,6 +41,7 @@ app.use("/api/v1/comments",commentRouter)
 app.use("/api/v1/likes",likeRouter)
 app.use("/api/v1/dashboard",dashboardRouter)
 app.use("/api/v1/playlists",playlistRouter)
+app.use("/api/v1/history",watchHistoryRouter)
 
 // error middleware (last)
 app.use(errorHandler)

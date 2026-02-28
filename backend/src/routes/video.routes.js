@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { deleteVideo, getAllVideos, getVideoById, publishAVideo, togglePublishStatus, updateVideo } from "../controllers/video.controller.js";
+import { deleteVideo, getAllVideos, getVideoById, publishAVideo, togglePublishStatus, updateVideo, updateVideoViews } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router()
@@ -25,6 +25,8 @@ router
         publishAVideo
     );
 //same route pe 2 controllers hain, agar get method se API call hoga toh getAllVideos vala controller chalega agar post method toh dusra
+
+router.route("/update-views/:videoId").patch(updateVideoViews)
 
 router
     .route("/:videoId")

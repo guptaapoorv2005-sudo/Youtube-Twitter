@@ -10,18 +10,22 @@ import { deleteComment, updateComment } from '../api/commentApi';
 
 export default function CommentCard({ comment, onDelete, onUpdate }) {
   const { user } = useAuth();
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(comment.likedStatus ?? false);
+  const [likesCount, setLikesCount] = useState(comment.likesCount ?? 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
 
-  const isOwner = user?._id === (comment.owner?._id || comment.owner);
+  // Use editableStatus from backend when available, fall back to manual check
+  const isOwner = comment.editableStatus ?? (user?._id === (comment.owner?._id || comment.owner));
   const owner = typeof comment.owner === 'object' ? comment.owner : null;
 
   const handleLike = async () => {
     try {
       const result = await toggleCommentLike(comment._id);
-      setLiked(result.liked);
+      const nowLiked = result.liked;
+      setLiked(nowLiked);
+      setLikesCount((prev) => prev + (nowLiked ? 1 : -1));
     } catch (err) {
       console.error('Comment like failed:', err);
     }
@@ -131,7 +135,7 @@ export default function CommentCard({ comment, onDelete, onUpdate }) {
           }`}
         >
           <Heart className={`h-3 w-3 ${liked ? 'fill-current' : ''}`} />
-          {liked ? 'Liked' : 'Like'}
+          {likesCount > 0 ? likesCount : ''} {liked ? 'Liked' : 'Like'}
         </button>
       </div>
     </motion.div>

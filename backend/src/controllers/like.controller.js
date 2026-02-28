@@ -147,17 +147,29 @@ const toggleTweetLike = asyncHandler(async (req,res) => {
 })
 
 const getLikedVideos = asyncHandler(async (req, res) => {
+    const { cursor, limit = 12 } = req.query
+    const limitNumber = Math.min(Math.max(Number(limit), 1), 20)
+
+    const matchStage = {
+        likedBy: new mongoose.Types.ObjectId(req.user._id),
+        video: { $exists: true }
+    }
+
+    if (cursor) {
+        matchStage.createdAt = { $lt: new Date(cursor) }
+    }
+
     const likedVideos = await Like.aggregate([
         {
-            $match: {
-                likedBy: new mongoose.Types.ObjectId(req.user._id),
-                video: { $exists: true }
-            }
+            $match: matchStage
         },
         {
             $sort: {
                 createdAt: -1
             }
+        },
+        {
+            $limit: limitNumber
         },
         {
             $lookup: {
@@ -193,7 +205,8 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                             thumbnail: 1,
                             owner: 1,
                             title: 1,
-                            duration: 1
+                            duration: 1,
+                            views: 1
                         }
                     }
                 ]
@@ -204,14 +217,23 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                video: 1
+                video: 1,
+                createdAt: 1
             }
         }
     ])
 
+    const nextCursor = likedVideos.length > 0
+        ? likedVideos[likedVideos.length - 1].createdAt
+        : null
+
     return res
     .status(200)
-    .json(new ApiResponse(200,likedVideos, "Liked videos fetched successfully"))
+    .json(new ApiResponse(200, {
+        likedVideos,
+        nextCursor,
+        hasMore: likedVideos.length === limitNumber
+    }, "Liked videos fetched successfully"))
 })
 
 export {

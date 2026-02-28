@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { Comment } from "../models/comment.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Video } from "../models/video.model.js";
+import { Like } from "../models/like.model.js";
 
 
 const getVideoComments = asyncHandler(async (req,res) => {
@@ -12,6 +13,8 @@ const getVideoComments = asyncHandler(async (req,res) => {
     if(!videoId || !mongoose.Types.ObjectId.isValid(videoId)){
         throw new ApiError(400, "Invalid video id")
     }
+
+    const currentUserId = new mongoose.Types.ObjectId(req.user._id)
 
     const aggregatePipeline = [
         {
@@ -44,6 +47,36 @@ const getVideoComments = asyncHandler(async (req,res) => {
         },
         {
             $unwind: "$owner"
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "allLikes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: {$size: "$allLikes"},
+                likedStatus: {
+                    $in: [currentUserId, "$allLikes.likedBy"]
+                },
+                editableStatus: {
+                    $eq: ["$owner._id",currentUserId]
+                }
+            }
+        },
+        {
+            $project: {
+                content: 1,
+                video: 1,
+                owner: 1,
+                likesCount: 1,
+                likedStatus: 1,
+                editableStatus: 1,
+                createdAt: 1,
+            }
         }
     ]
 
@@ -90,6 +123,15 @@ const addComment = asyncHandler(async (req,res) => {
         throw new ApiError(500, "Error while creating comment")
     }
 
+    comment.likesCount = 0
+    comment.likedStatus = false
+    comment.editableStatus = true
+    comment.owner = {
+        _id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        avatar: req.user.avatar
+    }
     return res
     .status(200)
     .json(new ApiResponse(201,comment,"Comment added successfully"))
@@ -121,6 +163,15 @@ const updateComment = asyncHandler(async (req,res) => {
         throw new ApiError(404,"Comment not found or Forbidden request")
     }
 
+    updatedComment.likesCount = await Like.countDocuments({comment: updatedComment._id})
+    updatedComment.likedStatus = await Like.exists({comment: updatedComment._id, likedBy: req.user._id})
+    updatedComment.editableStatus = true
+    updatedComment.owner = {
+        _id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        avatar: req.user.avatar
+    }
     return res
     .status(200)
     .json(new ApiResponse(200,updatedComment,"Comment updated successfully"))
@@ -142,6 +193,8 @@ const deleteComment = asyncHandler(async (req,res) => {
     if(!deletedComment){
         throw new ApiError(404, "Comment not found or Forbidden request")
     }
+
+    await Like.deleteMany({comment: deletedComment._id}) // Delete all likes associated with the comment
 
     return res
     .status(200)

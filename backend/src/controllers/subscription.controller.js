@@ -49,11 +49,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 const getUserChannelSubscribers = asyncHandler(async (req,res) => {
     const {channelId} = req.params
+    const {page = 1, limit = 10} = req.query
     if(!channelId || !mongoose.Types.ObjectId.isValid(channelId)){
         throw new ApiError(400, "Invalid channel id")
     }
 
-    const subscribers = await Subscription.aggregate([
+    const aggregatePipeline = [
         {
             $match: {channel: new mongoose.Types.ObjectId(channelId)}
         },
@@ -86,7 +87,17 @@ const getUserChannelSubscribers = asyncHandler(async (req,res) => {
                 subscriber: 1
             }
         }
-    ])
+    ]
+
+    const options = {
+        page: Number(page),
+        limit: Number(limit)
+    }
+
+    const subscribers = await Subscription.aggregatePaginate(
+        Subscription.aggregate(aggregatePipeline),
+        options
+    )
 
     return res
     .status(200)
@@ -95,11 +106,12 @@ const getUserChannelSubscribers = asyncHandler(async (req,res) => {
 
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const {subscriberId} = req.params
+    const {page = 1, limit = 10} = req.query
     if(!subscriberId || !mongoose.Types.ObjectId.isValid(subscriberId)){
         throw new ApiError(400, "Invalid subscriber id")
     }
 
-    const subscribedChannels = await Subscription.aggregate([
+    const aggregatePipeline = [
         {
             $match: {subscriber: new mongoose.Types.ObjectId(subscriberId)}
         },
@@ -132,7 +144,17 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
                 channel: 1
             }
         }
-    ])
+    ]
+
+    const options = {
+        page: Number(page),
+        limit: Number(limit)
+    }
+
+    const subscribedChannels = await Subscription.aggregatePaginate(
+        Subscription.aggregate(aggregatePipeline),
+        options
+    )
 
     return res
     .status(200)

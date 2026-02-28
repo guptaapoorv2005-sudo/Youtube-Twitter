@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ThumbsUp, MessageCircle } from 'lucide-react';
 import { formatDuration, timeAgo, formatViews } from '../utils/formatters';
 import Avatar from './ui/Avatar';
 
@@ -52,6 +53,24 @@ export default function VideoCard({ video }) {
                 <>
                   <span>·</span>
                   <span>{formatViews(video.views)} views</span>
+                </>
+              )}
+              {video.likesCount != null && (
+                <>
+                  <span>·</span>
+                  <span className="flex items-center gap-0.5">
+                    <ThumbsUp className="h-3 w-3" />
+                    {formatViews(video.likesCount)}
+                  </span>
+                </>
+              )}
+              {video.commentsCount != null && (
+                <>
+                  <span>·</span>
+                  <span className="flex items-center gap-0.5">
+                    <MessageCircle className="h-3 w-3" />
+                    {video.commentsCount}
+                  </span>
                 </>
               )}
               {video.createdAt && (

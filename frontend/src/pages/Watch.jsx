@@ -11,6 +11,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { getVideoById, incrementVideoView } from '../api/videoApi';
+import { addToWatchHistory } from '../api/watchHistoryApi';
 import { getVideoComments, addComment } from '../api/commentApi';
 import { toggleVideoLike } from '../api/likeApi';
 import { useAuth } from '../hooks/useAuth';
@@ -30,6 +31,7 @@ export default function Watch() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
 
   // Comments
   const [comments, setComments] = useState([]);
@@ -45,8 +47,11 @@ export default function Watch() {
       setError('');
       const data = await getVideoById(videoId);
       setVideo(data);
-      // Fire-and-forget view increment (stub — no backend endpoint)
-      incrementVideoView(videoId);
+      setLiked(data.likedStatus ?? false);
+      setLikesCount(data.likesCount ?? 0);
+      // Increment view count + add to watch history (fire-and-forget)
+      incrementVideoView(videoId).catch(() => {});
+      addToWatchHistory(videoId).catch(() => {});
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load video');
     } finally {
@@ -76,7 +81,9 @@ export default function Watch() {
   const handleLike = async () => {
     try {
       const result = await toggleVideoLike(videoId);
-      setLiked(result.liked);
+      const nowLiked = result.liked;
+      setLiked(nowLiked);
+      setLikesCount((prev) => prev + (nowLiked ? 1 : -1));
     } catch (err) {
       console.error('Like failed:', err);
     }
@@ -86,13 +93,6 @@ export default function Watch() {
     if (!commentText.trim()) return;
     try {
       const newComment = await addComment(videoId, commentText.trim());
-      // Attach current user as owner for display
-      newComment.owner = {
-        _id: user._id,
-        username: user.username,
-        fullName: user.fullName,
-        avatar: user.avatar,
-      };
       setComments((prev) => [newComment, ...prev]);
       setCommentText('');
     } catch (err) {
@@ -193,7 +193,7 @@ export default function Watch() {
                   }`}
                 >
                   <ThumbsUp className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
-                  {liked ? 'Liked' : 'Like'}
+                  {likesCount > 0 && <span>{likesCount}</span>}
                 </button>
                 <div className="w-px bg-dark-700" />
                 <button className="px-3 py-2 text-dark-400 hover:bg-dark-800 transition-colors">

@@ -3,6 +3,7 @@ import { Tweet } from "../models/tweet.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { Like } from "../models/like.model.js";
 
 
 const createTweet = asyncHandler(async (req,res) => {
@@ -19,6 +20,9 @@ const createTweet = asyncHandler(async (req,res) => {
         throw new ApiError(500, "Internal server error")
     }
 
+    tweet.likesCount = 0
+    tweet.likedStatus = false
+    tweet.editableStatus = true
     return res
     .status(201)
     .json(new ApiResponse(201, tweet, "Tweet created successfully"))
@@ -50,6 +54,9 @@ const updateTweet = asyncHandler(async (req,res) => {
         throw new ApiError(403, "Forbidden request or invalid tweet id")
     }
 
+    updatedTweet.likesCount = await Like.countDocuments({tweet: updatedTweet._id})
+    updatedTweet.likedStatus = await Like.exists({tweet: updatedTweet._id, likedBy: req.user._id})
+    updatedTweet.editableStatus = true
     return res
     .status(200)
     .json(new ApiResponse(200,updatedTweet,"Tweet updated successfully"))
@@ -88,11 +95,15 @@ const getAllTweets = asyncHandler(async (req,res) => {
     
     const matchStage = {}
     if(cursor){
-        const cursorDate = new Date(cursor)
-        if(Number.isNaN(cursorDate.getTime())){
+        const [cursorDateStr, cursorId] = cursor.split("_")
+        const cursorDate = new Date(cursorDateStr)
+        if(Number.isNaN(cursorDate.getTime()) || !cursorId || !mongoose.Types.ObjectId.isValid(cursorId)){
             throw new ApiError(400, "Invalid cursor value")
         }
-        matchStage.createdAt = {$lt: cursorDate}
+        matchStage.$or = [
+            {createdAt: {$lt: cursorDate}},
+            {createdAt: cursorDate, _id: {$lt: new mongoose.Types.ObjectId(cursorId)}}
+        ]
     }
 
     if(userId){
@@ -109,7 +120,7 @@ const getAllTweets = asyncHandler(async (req,res) => {
             $match: matchStage
         },
         {
-            $sort: {createdAt: -1}
+            $sort: {createdAt: -1, _id: -1}
         },
         {
             $limit: limitNumber
@@ -166,7 +177,10 @@ const getAllTweets = asyncHandler(async (req,res) => {
         }
     ])
 
-    const nextCursor = tweets.length === limitNumber ? tweets[tweets.length - 1].createdAt : null
+    const lastTweet = tweets[tweets.length - 1]
+    const nextCursor = tweets.length === limitNumber
+        ? `${lastTweet.createdAt.toISOString()}_${lastTweet._id}`
+        : null
     return res
         .status(200)
         .json(new ApiResponse(200, {tweets, nextCursor}, "Tweets fetched successfully"))

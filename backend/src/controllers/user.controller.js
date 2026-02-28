@@ -428,71 +428,6 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
     )
 })
 
-const getWatchHistory = asyncHandler(async (req,res)=>{
-    const user = await User.aggregate([
-        //find current user's document
-        {
-            $match: {
-                _id: new mongoose.Types.ObjectId(req.user._id)
-            }
-        },
-        //find all the documents of the videos the user has watched, by using the video _ids from watchHistory
-        {
-            $lookup: {
-                from: "videos",
-                localField: "watchHistory",
-                foreignField: "_id",
-                as: "watchHistory",   /*here we are replacing the initial watchHistory field(which contained video _ids) with a new 
-                watchHistory field(containing an array of video documents). Note that this won't change anything in the database, we are
-                just maiking changes to the copy of the user document we got from the previous stage*/
-
-                //since lookup will add a new field containing an array of video documents found
-                //we will first have to find and store the user document(details of owner of video) inside each video document 
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "owner",
-
-                            //before adding the owner's document, we first need to remove the unnecessary fields
-                            pipeline: [
-                                {
-                                    $project: {
-                                        username: 1,
-                                        fullName: 1,
-                                        avatar: 1
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    //now the owner field of the video document will have an array which will contain just one element(i.e. owner doucment)
-                    //we need to extract the owner document from the array and store it in the owner field
-                    {
-                        $addFields: {
-                            owner: {
-                                $first: "$owner"   //$first gets the first element of the array 
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        //we don't need the details of the current user here, we just need his watchHistory
-        {
-            $project: {
-                watchHistory: 1
-            }
-        }
-    ])
-
-    return res
-    .status(200)
-    .json(new ApiResponse(200, user[0], "watchHistory fetched successfully"))
-})
-
 export {
     registerUser,
     loginUser,
@@ -504,5 +439,4 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
 }

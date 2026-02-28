@@ -77,6 +77,48 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
         {
             $unwind: "$owner"  //Converts array field into a single object.
+        },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "video",
+                as: "comments"
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "allLikes"
+            }
+        },
+        {
+            $addFields: {
+                commentsCount: {$size: "$comments"},
+                likesCount: {$size: "$allLikes"},
+                likedStatus: {
+                    $in: [new mongoose.Types.ObjectId(req.user._id), "$allLikes.likedBy"]
+                },
+                editableStatus: {
+                    $eq: ["$owner._id", new mongoose.Types.ObjectId(req.user._id)]
+                },
+            }
+        },
+        {
+            $project: {
+                owner: 1,
+                title: 1,
+                description: 1,
+                thumbnail: 1,
+                duration: 1,
+                commentsCount: 1,
+                likesCount: 1,
+                likedStatus: 1,
+                editableStatus: 1,
+                views: 1,
+            }
         }
     ]
 
@@ -200,6 +242,51 @@ const getVideoById = asyncHandler(async (req,res) => {
         },
         {
             $unwind: "$owner"
+        },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "video",
+                as: "comments"
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "allLikes"
+            }
+        },
+        {
+            $addFields: {
+                commentsCount: {$size: "$comments"},
+                likesCount: {$size: "$allLikes"},
+                likedStatus: {
+                    $in: [new mongoose.Types.ObjectId(req.user._id), "$allLikes.likedBy"]
+                },
+                editableStatus: {
+                    $eq: ["$owner._id", new mongoose.Types.ObjectId(req.user._id)]
+                },
+            }
+        },
+        {
+            $project: {
+                owner: 1,
+                videoFile: 1,
+                views: 1,
+                isPublished: 1,
+                title: 1,
+                description: 1,
+                thumbnail: 1,
+                duration: 1,
+                commentsCount: 1,
+                likesCount: 1,
+                likedStatus: 1,
+                editableStatus: 1,
+                createdAt: 1,
+            }
         }
     ])
 
@@ -329,11 +416,35 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200,updatedVideo,"Publish status toggled successfully"))
 })
 
+const updateVideoViews = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    if(!videoId || !mongoose.Types.ObjectId.isValid(videoId)){
+        throw new ApiError(400, "Invalid video id")
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $inc: {views: 1}
+        },
+        {new: true}
+    )
+
+    if(!updatedVideo){
+        throw new ApiError(404, "Video not found")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,updatedVideo,"Video views updated successfully"))
+})
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    updateVideoViews
 }
