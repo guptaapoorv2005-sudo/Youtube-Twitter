@@ -55,6 +55,11 @@ export default function SaveToPlaylistModal({ isOpen, onClose, videoId }) {
       setSaving(playlistId);
       await addVideoToPlaylist(playlistId, videoId);
       setSavedIds((prev) => new Set(prev).add(playlistId));
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p._id === playlistId ? { ...p, totalVideos: (p.totalVideos ?? 0) + 1 } : p
+        )
+      );
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to add video';
       setError(msg);
@@ -73,7 +78,7 @@ export default function SaveToPlaylistModal({ isOpen, onClose, videoId }) {
       // Add video to the newly created playlist
       await addVideoToPlaylist(playlist._id, videoId);
       setSavedIds((prev) => new Set(prev).add(playlist._id));
-      setPlaylists((prev) => [playlist, ...prev]);
+      setPlaylists((prev) => [{ ...playlist, totalVideos: 1 }, ...prev]);
       setNewName('');
       setNewDescription('');
       setShowCreate(false);
