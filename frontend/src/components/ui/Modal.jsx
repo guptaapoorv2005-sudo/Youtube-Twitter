@@ -1,14 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  const sizes = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-  };
-
+export default function Modal({ isOpen, onClose, title, children }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -17,28 +10,29 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-lg border border-slate-700 z-50 w-full ${sizes[size]} max-h-[90vh] overflow-auto`}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-dark-700 bg-dark-900 p-6 shadow-2xl"
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-              <h2 className="text-xl font-semibold text-white">{title}</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-dark-100">{title}</h3>
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-slate-700 rounded transition-colors"
+                className="rounded-lg p-1.5 text-dark-400 transition-colors hover:bg-dark-800 hover:text-dark-100"
               >
-                <X size={20} className="text-slate-400" />
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6">{children}</div>
+            {children}
           </motion.div>
         </>
       )}
     </AnimatePresence>
   );
-};
+}

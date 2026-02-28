@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+@theme {
+  --color-dark-950: #0a0a0f;
+  --color-dark-900: #111118;
+  --color-dark-800: #1a1a24;
+  --color-dark-700: #252532;
+  --color-dark-600: #333346;
+  --color-dark-500: #4a4a5e;
+  --color-dark-400: #6b6b80;
+  --color-dark-300: #9393a8;
+  --color-dark-200: #b8b8cc;
+  --color-dark-100: #dcdce8;
+
+  --color-accent-500: #7c3aed;
+  --color-accent-400: #8b5cf6;
+  --color-accent-600: #6d28d9;
+
+  --color-brand-500: #ec4899;
+  --color-brand-400: #f472b6;
+  --color-brand-600: #db2777;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-dark-900); }
+::-webkit-scrollbar-thumb { background: var(--color-dark-600); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-dark-500); }
+
+body {
+  background-color: var(--color-dark-950);
+  color: var(--color-dark-100);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Skeleton pulse */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-dark-800) 25%, var(--color-dark-700) 50%, var(--color-dark-800) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}

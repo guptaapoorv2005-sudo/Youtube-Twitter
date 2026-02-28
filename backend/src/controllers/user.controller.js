@@ -101,7 +101,7 @@ const loginUser = asyncHandler(async (req,res)=>{
     }
 
     const user = await User.findOne({
-        $or: [{ username: username.trim().toLowerCase() }, { email: email.trim().toLowerCase() }]
+        $or: [{ username: username?.trim().toLowerCase() }, { email: email?.trim().toLowerCase() }]
     })
     if(!user){
         throw new ApiError(404, "No user found")

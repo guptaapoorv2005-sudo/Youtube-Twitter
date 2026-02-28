@@ -1,127 +1,108 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { Loader } from '../components/common/Loader';
+import { Film, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
-export const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [errors, setErrors] = useState({});
-  const { login, loading, error: authError } = useAuth();
+export default function Login() {
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    if (!formData.password) newErrors.password = 'Password is required';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const [form, setForm] = useState({ identifier: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    setError('');
 
+    if (!form.identifier.trim() || !form.password.trim()) {
+      setError('All fields are required');
+      return;
+    }
+
+    setLoading(true);
     try {
-      await login(formData.email, formData.password);
+      const isEmail = form.identifier.includes('@');
+      await login({
+        [isEmail ? 'email' : 'username']: form.identifier.trim(),
+        password: form.password,
+      });
       navigate('/');
     } catch (err) {
-      console.error('Login error:', err);
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: '' }));
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4"
-          >
-            <span className="font-bold text-2xl text-white">V</span>
-          </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-slate-400">Sign in to VideoX</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-md"
+    >
+      <div className="rounded-2xl border border-dark-800 bg-dark-900 p-8 shadow-2xl">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-accent-500 to-brand-500">
+            <Film className="h-7 w-7 text-white" />
+          </div>
+          <h1 className="bg-linear-to-r from-accent-400 to-brand-400 bg-clip-text text-2xl font-bold text-transparent">
+            Welcome back
+          </h1>
+          <p className="mt-1 text-sm text-dark-400">Sign in to your VidTweet account</p>
         </div>
 
-        {/* Form */}
-        <motion.form
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-4 bg-slate-800 border border-slate-700 rounded-lg p-6"
-        >
-          {authError && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
-            >
-              {authError}
-            </motion.div>
-          )}
-
-          <Input
-            label="Email"
-            type="email"
-            name="email"
-            placeholder="your@email.com"
-            value={formData.email}
-            onChange={handleChange}
-            error={errors.email}
-          />
-
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-          />
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            className="w-full mt-6"
-            disabled={loading}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400"
           >
-            {loading ? <Loader /> : 'Sign In'}
-          </Button>
-        </motion.form>
+            {error}
+          </motion.div>
+        )}
 
-        {/* Footer */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-center text-slate-400 mt-6"
-        >
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Username or Email"
+            placeholder="Enter your username or email"
+            value={form.identifier}
+            onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+          />
+          <div className="relative">
+            <Input
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-dark-400 hover:text-dark-200"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <Button type="submit" variant="brand" className="w-full" loading={loading}>
+            Sign In
+          </Button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-dark-400">
+          Don&apos;t have an account?{' '}
+          <Link to="/register" className="font-medium text-accent-400 hover:text-accent-300 transition-colors">
             Sign up
           </Link>
-        </motion.p>
-      </motion.div>
-    </div>
+        </p>
+      </div>
+    </motion.div>
   );
-};
+}

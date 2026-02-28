@@ -1,55 +1,23 @@
-export const Input = ({
-  type = 'text',
-  placeholder,
-  value,
-  onChange,
-  error,
-  label,
-  className = '',
-  ...props
-}) => {
-  return (
-    <div className="w-full">
-      {label && <label className="block text-sm font-medium text-slate-300 mb-2">{label}</label>}
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className={`w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors ${className} ${
-          error ? 'border-red-500' : ''
-        }`}
-        {...props}
-      />
-      {error && <span className="block text-red-400 text-sm mt-1">{error}</span>}
-    </div>
-  );
-};
+import { forwardRef } from 'react';
 
-export const TextArea = ({
-  placeholder,
-  value,
-  onChange,
-  error,
-  label,
-  rows = 4,
-  className = '',
-  ...props
-}) => {
+const Input = forwardRef(({ label, error, className = '', ...props }, ref) => {
   return (
-    <div className="w-full">
-      {label && <label className="block text-sm font-medium text-slate-300 mb-2">{label}</label>}
-      <textarea
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        rows={rows}
-        className={`w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none ${className} ${
-          error ? 'border-red-500' : ''
-        }`}
+    <div className="space-y-1.5">
+      {label && (
+        <label className="block text-sm font-medium text-dark-200">{label}</label>
+      )}
+      <input
+        ref={ref}
+        className={`w-full rounded-xl border border-dark-700 bg-dark-800 px-4 py-2.5 text-sm text-dark-100 placeholder-dark-500 outline-none transition-all focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 ${
+          error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' : ''
+        } ${className}`}
         {...props}
       />
-      {error && <span className="block text-red-400 text-sm mt-1">{error}</span>}
+      {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
-};
+});
+
+Input.displayName = 'Input';
+
+export default Input;

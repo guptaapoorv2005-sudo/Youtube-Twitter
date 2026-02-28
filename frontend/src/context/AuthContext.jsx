@@ -1,97 +1,56 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { createContext, useState, useEffect, useCallback } from 'react';
+import { getCurrentUser, loginUser as loginApi, logoutUser as logoutApi, registerUser as registerApi } from '../api/authApi';
 
-const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // Check if user is logged in on mount
-  //Never write useEffect(async () => {}).
-  // Async functions return a Promise, but useEffect must return only a cleanup function or nothing.
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await authAPI.getCurrentUser();
-        setUser(response.data.data);
-      } catch (err) {
-        console.error("Auth check failed:", err);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    const handleAutoLogout = () => {
+  const fetchUser = useCallback(async () => {
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+    } catch {
       setUser(null);
-    };
-
-    window.addEventListener("auth:logout", handleAutoLogout);
-
-    return () => {  //cleanup function, it will run when AuthProvider unmounts
-      window.removeEventListener("auth:logout", handleAutoLogout);
-    };
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const login = async (userData) => {
-    try {
-      setError(null);
-      const response = await authAPI.login(userData);
-      const userDetails = response.data.data;
-      setUser(userDetails);
-      return userDetails;
-    } catch (err) {
-      const message = err.response?.data?.message || 'Login failed';
-      setError(message);
-      throw err;
-    }
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  // Listen for forced logout from axios interceptor
+  useEffect(() => {
+    const handleForceLogout = () => {
+      setUser(null);
+      setLoading(false);
+    };
+    window.addEventListener('auth:logout', handleForceLogout);
+    return () => window.removeEventListener('auth:logout', handleForceLogout);
+  }, []);
+
+  const login = async (credentials) => {
+    const { user: loggedInUser } = await loginApi(credentials);
+    setUser(loggedInUser);
+    return loggedInUser;
   };
 
-  const register = async (userData, avatarFile, coverImageFile) => {
-    try {
-      setError(null);
-      const response = await authAPI.register(userData, avatarFile, coverImageFile);
-      const userDetails = response.data.data;
-      setUser(userDetails);
-      return userDetails;
-    } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed';
-      setError(message);
-      throw err;
-    }
+  const register = async (formData) => {
+    const registeredUser = await registerApi(formData);
+    return registeredUser;
   };
 
   const logout = async () => {
-    try {
-      await authAPI.logout();
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      setUser(null);
-    }
+    await logoutApi();
+    setUser(null);
   };
 
-  const value = {
-    user,
-    loading,
-    error,
-    isAuthenticated: !!user,
-    login,
-    register,
-    logout,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+  return (
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser: fetchUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
