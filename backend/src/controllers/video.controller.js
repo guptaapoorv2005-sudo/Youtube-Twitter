@@ -6,6 +6,8 @@ import { ApiError } from "../utils/ApiError.js"
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
 import fs from "fs"
 import { Like } from "../models/like.model.js"
+import { Comment } from "../models/comment.model.js"
+import { Playlist } from "../models/playlist.model.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const {page = 1, limit = 10, query, sortBy, sortType, userId} = req.query /*url mai ? ke baad jo bhi hota hai vo sab query mai milta
