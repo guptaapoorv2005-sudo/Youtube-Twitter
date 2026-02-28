@@ -28,3 +28,8 @@ export const getUserChannelProfile = async (username) => {
   const { data } = await api.get(`/users/channel/${username}`);
   return data.data;
 };
+
+export const deleteAccount = async () => {
+  const { data } = await api.delete('/users/delete-account');
+  return data.data;
+};

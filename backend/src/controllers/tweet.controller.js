@@ -79,6 +79,8 @@ const deleteTweet = asyncHandler(async (req,res) => {
         throw new ApiError(404, "Tweet not found or Forbidden request")
     }
 
+    await Like.deleteMany({tweet: deleted._id})
+
     return res
     .status(200)
     .json(new ApiResponse(200,{},"Tweet deleted successfully"))

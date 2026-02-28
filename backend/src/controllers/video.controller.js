@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { ApiError } from "../utils/ApiError.js"
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
 import fs from "fs"
+import { Like } from "../models/like.model.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const {page = 1, limit = 10, query, sortBy, sortType, userId} = req.query /*url mai ? ke baad jo bhi hota hai vo sab query mai milta
@@ -383,6 +384,18 @@ const deleteVideo = asyncHandler(async (req,res) => {
     if(!deletedVideo){
         throw new ApiError(500, "Something went wrong while deleting the video")
     }
+
+    await Like.deleteMany({video: deletedVideo._id}) //video delete hone ke baad usse related likes bhi delete kar denge
+
+    await Comment.deleteMany({video: deletedVideo._id})
+
+    await Playlist.updateMany(
+        {videos: deletedVideo._id},
+        {
+            $pull: {videos: deletedVideo._id},
+            $inc: {totalVideos: -1} //$pull se video id playlist se remove ho jayegi aur $inc se totalVideos field ka value 1 se decrease ho jayega
+        }
+    )
 
     return res
     .status(200)

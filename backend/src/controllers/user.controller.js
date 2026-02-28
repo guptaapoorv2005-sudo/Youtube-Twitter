@@ -2,6 +2,13 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js";
+import { Video } from "../models/video.model.js";
+import { Comment } from "../models/comment.model.js";
+import { Like } from "../models/like.model.js";
+import { Playlist } from "../models/playlist.model.js";
+import { Subscription } from "../models/subscription.model.js";
+import { Tweet } from "../models/tweet.model.js";
+import { WatchHistory } from "../models/watchHistory.model.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
@@ -428,6 +435,61 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
     )
 })
 
+const deleteUser = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Delete all videos owned by the user (and their cloudinary files)
+    const userVideos = await Video.find({ owner: userId });
+    for (const video of userVideos) {
+        await deleteFromCloudinary(video.videoFile);
+        await deleteFromCloudinary(video.thumbnail);
+    }
+    await Video.deleteMany({ owner: userId });
+
+    // Delete all comments by the user
+    await Comment.deleteMany({ owner: userId });
+
+    // Delete all likes by the user
+    await Like.deleteMany({ likedBy: userId });
+
+    // Delete all playlists owned by the user
+    await Playlist.deleteMany({ owner: userId });
+
+    // Delete all subscriptions where user is subscriber or channel
+    await Subscription.deleteMany({ $or: [{ subscriber: userId }, { channel: userId }] });
+
+    // Delete all tweets by the user
+    await Tweet.deleteMany({ owner: userId });
+
+    // Delete watch history
+    await WatchHistory.deleteMany({ user: userId });
+
+    // Delete user's avatar and cover image from cloudinary
+    await deleteFromCloudinary(user.avatar);
+    if (user.coverImage) {
+        await deleteFromCloudinary(user.coverImage);
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production"
+    };
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User account deleted successfully"));
+});
+
 export {
     registerUser,
     loginUser,
@@ -439,4 +501,5 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
+    deleteUser,
 }

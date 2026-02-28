@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Lock, Camera } from 'lucide-react';
+import { User, Lock, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { changePassword, updateAccountDetails, updateUserAvatar, updateUserCoverImage } from '../api/userApi';
+import { changePassword, updateAccountDetails, updateUserAvatar, updateUserCoverImage, deleteAccount } from '../api/userApi';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Avatar from '../components/ui/Avatar';
+import Modal from '../components/ui/Modal';
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
@@ -25,6 +26,11 @@ export default function Settings() {
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '' });
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState('');
+
+  // Delete account
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const handleAccountUpdate = async (e) => {
     e.preventDefault();
@@ -60,6 +66,20 @@ export default function Settings() {
       setPasswordMsg(err.response?.data?.message || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+    setDeleteLoading(true);
+    try {
+      await deleteAccount();
+      // Force logout on the client side
+      window.dispatchEvent(new Event('auth:logout'));
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Delete account failed:', err);
+      setDeleteLoading(false);
     }
   };
 
@@ -104,6 +124,7 @@ export default function Settings() {
         {[
           { id: 'account', label: 'Account', icon: User },
           { id: 'security', label: 'Security', icon: Lock },
+          { id: 'danger', label: 'Danger Zone', icon: Trash2 },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -178,6 +199,67 @@ export default function Settings() {
               </Button>
             </form>
           </div>
+        </motion.div>
+      )}
+
+      {tab === 'danger' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div className="rounded-2xl border border-red-500/30 bg-dark-900 p-6">
+            <h3 className="mb-2 font-semibold text-red-400">Delete Account</h3>
+            <p className="mb-4 text-sm text-dark-400">
+              Permanently delete your account and all associated data including videos, comments, playlists, and subscriptions. This action cannot be undone.
+            </p>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Account
+            </Button>
+          </div>
+
+          <Modal
+            isOpen={showDeleteModal}
+            onClose={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}
+            title="Delete Account"
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-dark-300">
+                This will permanently delete your account and all your data. This action is <span className="font-semibold text-red-400">irreversible</span>.
+              </p>
+              <div>
+                <label className="mb-1 block text-sm text-dark-400">
+                  Type <span className="font-mono font-semibold text-red-400">DELETE</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="w-full rounded-lg border border-dark-700 bg-dark-800 px-3 py-2 text-sm text-dark-100 focus:border-red-500 focus:outline-none"
+                  placeholder="DELETE"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  loading={deleteLoading}
+                  disabled={deleteConfirmText !== 'DELETE'}
+                  onClick={handleDeleteAccount}
+                >
+                  Delete Forever
+                </Button>
+              </div>
+            </div>
+          </Modal>
         </motion.div>
       )}
 

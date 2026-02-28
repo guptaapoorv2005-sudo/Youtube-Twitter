@@ -290,6 +290,7 @@ Error responses:
 | `PATCH` | `/users/update-avatar` | 🔒 📎 | Upload new avatar image |
 | `PATCH` | `/users/update-cover` | 🔒 📎 | Upload new cover image |
 | `GET` | `/users/channel/:username` | 🔒 | Get channel profile with subscriber counts |
+| `DELETE` | `/users/delete-account` | 🔒 | Permanently delete user account and all associated data |
 
 ---
 
