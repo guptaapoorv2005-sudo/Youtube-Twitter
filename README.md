@@ -1,4 +1,4 @@
-# VideoTube
+# XTube
 
 A full-stack video sharing platform built with **Express 5**, **MongoDB**, **React 19**, and **Cloudinary**. Users can upload videos, create playlists, post tweets, subscribe to channels, like content, and manage their watch history.
 

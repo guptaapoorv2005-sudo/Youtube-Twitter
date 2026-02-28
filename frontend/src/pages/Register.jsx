@@ -79,7 +79,7 @@ export default function Register() {
           <h1 className="bg-linear-to-r from-accent-400 to-brand-400 bg-clip-text text-2xl font-bold text-transparent">
             Create account
           </h1>
-          <p className="mt-1 text-sm text-dark-400">Join VidTweet today</p>
+          <p className="mt-1 text-sm text-dark-400">Join XTube today</p>
         </div>
 
         {error && (

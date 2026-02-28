@@ -79,7 +79,7 @@ export default function MainLayout() {
             <Film className="h-5 w-5 text-white" />
           </div>
           <span className="bg-linear-to-r from-accent-400 to-brand-400 bg-clip-text text-xl font-bold text-transparent">
-            VidTweet
+            XTube
           </span>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5 text-dark-400" />
