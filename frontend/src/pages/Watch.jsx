@@ -100,10 +100,15 @@ export default function Watch() {
     try {
       setDeleting(true);
       await deleteVideo(videoId);
-      navigate(-1);
     } catch (err) {
       console.error('Delete failed:', err);
       setDeleting(false);
+      return;
+    }
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/', { replace: true });
     }
   };
 
