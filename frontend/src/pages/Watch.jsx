@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Check,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { getVideoById, incrementVideoView, deleteVideo } from '../api/videoApi';
 import { addToWatchHistory } from '../api/watchHistoryApi';
@@ -234,14 +235,23 @@ export default function Watch() {
                 Save
               </button>
               {user && owner._id === user._id && (
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex items-center gap-1.5 rounded-xl border border-red-500/30 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
+                <>
+                  <button
+                    onClick={() => navigate(`/edit/${videoId}`)}
+                    className="flex items-center gap-1.5 rounded-xl border border-dark-700 px-4 py-2 text-sm text-dark-300 hover:bg-dark-800 transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-1.5 rounded-xl border border-red-500/30 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deleting ? 'Deleting…' : 'Delete'}
+                  </button>
+                </>
               )}
             </div>
           </div>

@@ -14,6 +14,7 @@ import LikedVideos from '../pages/LikedVideos';
 import History from '../pages/History';
 import Subscriptions from '../pages/Subscriptions';
 import Upload from '../pages/Upload';
+import EditVideo from '../pages/EditVideo';
 import Playlists from '../pages/Playlists';
 import PlaylistDetail from '../pages/PlaylistDetail';
 
@@ -44,6 +45,7 @@ export default function AppRoutes() {
             <Route path="/history" element={<History />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/upload" element={<Upload />} />
+            <Route path="/edit/:videoId" element={<EditVideo />} />
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/playlists/:playlistId" element={<PlaylistDetail />} />
           </Route>
