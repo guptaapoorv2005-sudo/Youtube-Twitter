@@ -137,7 +137,8 @@ const loginUser = asyncHandler(async (req,res)=>{
 
     const options = {
         httpOnly: true,  //this line makes sure that only the server can modify these cookies and frontend cannot
-        secure: process.env.NODE_ENV === "production"  //Cookie is sent ONLY over HTTPS and not over HTTP if secure: true
+        secure: process.env.NODE_ENV === "production",  //Cookie is sent ONLY over HTTPS and not over HTTP if secure: true
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"  //none is required for cross-domain cookie sending
     }
 
     return res
@@ -161,7 +162,8 @@ const logoutUser = asyncHandler(async (req,res)=>{
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production"
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     }
 
     return res
@@ -201,7 +203,8 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production"
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     }
 
     return res
@@ -480,7 +483,8 @@ const deleteUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production"
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     };
 
     return res
