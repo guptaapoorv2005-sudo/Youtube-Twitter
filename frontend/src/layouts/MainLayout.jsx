@@ -61,7 +61,7 @@ export default function MainLayout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            className="fixed inset-0 z-40 cursor-pointer bg-black/60 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

@@ -9,7 +9,7 @@ export default function Button({
   disabled = false,
   ...props
 }) {
-  const base = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
+  const base = 'cursor-pointer inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variants = {
     primary: 'bg-accent-500 text-white hover:bg-accent-600 shadow-lg shadow-accent-500/20',

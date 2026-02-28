@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, MessageCircle, Users, Eye, ThumbsUp, Video } from 'lucide-react';
+import { Film, MessageCircle, Users, Eye, ThumbsUp, Video, ListVideo } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { getUserChannelProfile } from '../api/userApi';
 import { getChannelStats, getChannelVideos } from '../api/dashboardApi';
 import { getAllTweets } from '../api/tweetApi';
 import { toggleSubscription } from '../api/subscriptionApi';
+import { getUserPlaylists } from '../api/playlistApi';
 import { useAuth } from '../hooks/useAuth';
 import VideoCard from '../components/VideoCard';
 import TweetCard from '../components/TweetCard';
-import { VideoCardSkeleton, TweetCardSkeleton, ProfileSkeleton } from '../components/ui/Skeleton';
+import { VideoCardSkeleton, TweetCardSkeleton, ProfileSkeleton, Skeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import Button from '../components/ui/Button';
@@ -34,6 +36,9 @@ export default function Profile() {
   const [hasMoreVideos, setHasMoreVideos] = useState(true);
   const [tweetCursor, setTweetCursor] = useState(null);
   const [hasMoreTweets, setHasMoreTweets] = useState(true);
+  const [playlists, setPlaylists] = useState([]);
+  const [playlistCursor, setPlaylistCursor] = useState(null);
+  const [hasMorePlaylists, setHasMorePlaylists] = useState(true);
 
   const fetchChannel = useCallback(async () => {
     try {
@@ -86,6 +91,22 @@ export default function Profile() {
     }
   }, [channel?._id]);
 
+  const fetchPlaylists = useCallback(async (cursor = null, append = false) => {
+    if (!channel?._id) return;
+    try {
+      setContentLoading(true);
+      const data = await getUserPlaylists(channel._id, { limit: 12, cursor: cursor || undefined });
+      const list = data.playlists || [];
+      setPlaylists((prev) => (append ? [...prev, ...list] : list));
+      setPlaylistCursor(data.nextCursor || null);
+      setHasMorePlaylists(!!data.nextCursor);
+    } catch (err) {
+      console.error('Fetch playlists failed:', err);
+    } finally {
+      setContentLoading(false);
+    }
+  }, [channel?._id]);
+
   useEffect(() => {
     fetchChannel();
   }, [fetchChannel]);
@@ -93,20 +114,23 @@ export default function Profile() {
   useEffect(() => {
     if (channel) {
       if (tab === 'videos') fetchVideos();
-      else fetchTweets();
+      else if (tab === 'tweets') fetchTweets();
+      else if (tab === 'playlists') fetchPlaylists();
     }
-  }, [channel, tab, fetchVideos, fetchTweets]);
+  }, [channel, tab, fetchVideos, fetchTweets, fetchPlaylists]);
 
   const handleSubscribe = async () => {
     if (!channel?._id || subLoading) return;
     setSubLoading(true);
     try {
       const result = await toggleSubscription(channel._id);
+      const delta = result.subscribed ? 1 : -1;
       setIsSubscribed(result.subscribed);
       setChannel((prev) => ({
         ...prev,
-        subscribersCount: prev.subscribersCount + (result.subscribed ? 1 : -1),
+        subscribersCount: prev.subscribersCount + delta,
       }));
+      setStats((prev) => prev ? { ...prev, totalSubscribers: prev.totalSubscribers + delta } : prev);
     } catch (err) {
       console.error('Subscribe failed:', err);
     } finally {
@@ -189,6 +213,7 @@ export default function Profile() {
         {[
           { id: 'videos', label: 'Videos', icon: Film },
           { id: 'tweets', label: 'Tweets', icon: MessageCircle },
+          { id: 'playlists', label: 'Playlists', icon: ListVideo },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -251,7 +276,7 @@ export default function Profile() {
               </>
             )}
           </motion.div>
-        ) : (
+        ) : tab === 'tweets' ? (
           <motion.div
             key="tweets"
             initial={{ opacity: 0 }}
@@ -279,6 +304,63 @@ export default function Profile() {
                       variant="secondary"
                       size="sm"
                       onClick={() => fetchTweets(tweetCursor, true)}
+                      loading={contentLoading}
+                    >
+                      Load more
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="playlists"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3"
+          >
+            {contentLoading && playlists.length === 0 ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : playlists.length === 0 ? (
+              <EmptyState icon={ListVideo} title="No playlists" description="This channel doesn't have any public playlists yet." />
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {playlists.map((pl) => (
+                    <motion.div
+                      key={pl._id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-4 rounded-xl border border-dark-800 bg-dark-900 p-4 transition-colors hover:border-dark-700"
+                    >
+                      <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-dark-800">
+                        <ListVideo className="h-6 w-6 text-accent-400" />
+                      </div>
+                      <Link to={`/playlists/${pl._id}`} className="min-w-0 flex-1">
+                        <h3 className="font-medium text-dark-100 hover:text-accent-400 transition-colors">
+                          {pl.name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-dark-400">
+                          <span>{pl.totalVideos || 0} videos</span>
+                          <span>·</span>
+                          <span>{pl.isPublic ? 'Public' : 'Private'}</span>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+                {hasMorePlaylists && (
+                  <div className="mt-6 flex justify-center">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => fetchPlaylists(playlistCursor, true)}
                       loading={contentLoading}
                     >
                       Load more

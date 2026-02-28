@@ -1,24 +1,59 @@
 @import "tailwindcss";
 
+/* ─── Slate + Indigo / Violet Theme (Modern SaaS) ─── */
+
 @theme {
-  --color-dark-950: #0a0a0f;
-  --color-dark-900: #111118;
-  --color-dark-800: #1a1a24;
-  --color-dark-700: #252532;
-  --color-dark-600: #333346;
-  --color-dark-500: #4a4a5e;
-  --color-dark-400: #6b6b80;
-  --color-dark-300: #9393a8;
-  --color-dark-200: #b8b8cc;
-  --color-dark-100: #dcdce8;
+  /* Light mode palette (default) */
 
-  --color-accent-500: #7c3aed;
-  --color-accent-400: #8b5cf6;
-  --color-accent-600: #6d28d9;
+  /* Backgrounds — cool slate scale */
+  --color-dark-950: #F8FAFC;   /* Main page background      (slate-50)  */
+  --color-dark-900: #F1F5F9;   /* Card / panel / sidebar     (slate-100) */
+  --color-dark-800: #E2E8F0;   /* Input bg / elevated inner  (slate-200) */
+  --color-dark-700: #CBD5E1;   /* Primary border             (slate-300) */
+  --color-dark-600: #94A3B8;   /* Heavy / dashed borders     (slate-400) */
 
-  --color-brand-500: #ec4899;
-  --color-brand-400: #f472b6;
-  --color-brand-600: #db2777;
+  /* Text — cool gray scale */
+  --color-dark-500: #64748B;   /* Placeholder / muted icons  (slate-500) */
+  --color-dark-400: #475569;   /* Secondary text             (slate-600) */
+  --color-dark-300: #334155;   /* Body text                  (slate-700) */
+  --color-dark-200: #1E293B;   /* Sub-headings / labels      (slate-800) */
+  --color-dark-100: #0F172A;   /* Primary text               (slate-900) */
+
+  /* Primary — indigo */
+  --color-accent-600: #4F46E5;  /* Indigo-600 (hover depth)  */
+  --color-accent-500: #6366F1;  /* Indigo-500 (main)         */
+  --color-accent-400: #818CF8;  /* Indigo-400 (text hl)      */
+  --color-accent-300: #A5B4FC;  /* Indigo-300 (subtle hover) */
+
+  /* Brand — violet */
+  --color-brand-600: #7C3AED;   /* Violet-600 */
+  --color-brand-500: #8B5CF6;   /* Violet-500 */
+  --color-brand-400: #A78BFA;   /* Violet-400 */
+}
+
+/* ─── Dark mode overrides (prefers-color-scheme) ─── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-dark-950: #030712;   /* Gray-950  (deep bg)       */
+    --color-dark-900: #111827;   /* Gray-900  (card surface)  */
+    --color-dark-800: #1F2937;   /* Gray-800  (input bg)      */
+    --color-dark-700: #374151;   /* Gray-700  (border)        */
+    --color-dark-600: #4B5563;   /* Gray-600  (heavy border)  */
+    --color-dark-500: #6B7280;   /* Gray-500  (placeholder)   */
+    --color-dark-400: #9CA3AF;   /* Gray-400  (secondary txt) */
+    --color-dark-300: #D1D5DB;   /* Gray-300  (body text)     */
+    --color-dark-200: #E5E7EB;   /* Gray-200  (headings)      */
+    --color-dark-100: #F3F4F6;   /* Gray-100  (primary text)  */
+
+    --color-accent-600: #4F46E5;  /* Indigo-600 */
+    --color-accent-500: #6366F1;  /* Indigo-500 */
+    --color-accent-400: #818CF8;  /* Indigo-400 */
+    --color-accent-300: #A5B4FC;  /* Indigo-300 */
+
+    --color-brand-600: #7C3AED;   /* Violet-600 */
+    --color-brand-500: #8B5CF6;   /* Violet-500 */
+    --color-brand-400: #A78BFA;   /* Violet-400 */
+  }
 }
 
 /* Custom scrollbar */
@@ -26,6 +61,11 @@
 ::-webkit-scrollbar-track { background: var(--color-dark-900); }
 ::-webkit-scrollbar-thumb { background: var(--color-dark-600); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-dark-500); }
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
 
 body {
   background-color: var(--color-dark-950);
