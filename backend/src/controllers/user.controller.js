@@ -135,16 +135,26 @@ const loginUser = asyncHandler(async (req,res)=>{
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
-    const options = {
+    const accessTokenOptions = {
         httpOnly: true,  //this line makes sure that only the server can modify these cookies and frontend cannot
         secure: process.env.NODE_ENV === "production",  //Cookie is sent ONLY over HTTPS and not over HTTP if secure: true
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"  //none is required for cross-domain cookie sending
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",  //none is required for cross-domain cookie sending
+        maxAge: 24 * 60 * 60 * 1000  // 1 day time in milliseconds
+        // agar "maxAge" nhi daalenge toh cookie session-cookie ban jayega, jo browser band karte hi delete ho jayega, aur user ko dobara login karna padega
+        //"maxAge" daalne se vo cookie persistent cookie ban jayega, jo browser band karne pe delete nhi hoga, balki specified time ke baad delete hoga
+    }
+
+    const refreshTokenOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 10 * 24 * 60 * 60 * 1000  // 10 days
     }
 
     return res
     .status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",refreshToken,options)
+    .cookie("accessToken",accessToken,accessTokenOptions)
+    .cookie("refreshToken",refreshToken,refreshTokenOptions)
     .json(
         new ApiResponse(200, { user: loggedInUser, accessToken, refreshToken }, "user logged in successfully")
     )
@@ -168,8 +178,8 @@ const logoutUser = asyncHandler(async (req,res)=>{
 
     return res
     .status(200)
-    .clearCookie("accessToken",options)
-    .clearCookie("refreshToken",options)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json( new ApiResponse(200, {}, "User logged out successfully"))
 })
 
@@ -201,16 +211,24 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
     user.refreshToken = newRefreshToken
     await user.save({validateBeforeSave: false})
 
-    const options = {
+    const accessTokenOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 24 * 60 * 60 * 1000  // 1 day
+    }
+
+    const refreshTokenOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 10 * 24 * 60 * 60 * 1000  // 10 days
     }
 
     return res
     .status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",newRefreshToken,options)
+    .cookie("accessToken",accessToken,accessTokenOptions)
+    .cookie("refreshToken",newRefreshToken,refreshTokenOptions)
     .json( new ApiResponse(200, { accessToken, refreshToken: newRefreshToken}, "Access token refreshed"))
 
 })
