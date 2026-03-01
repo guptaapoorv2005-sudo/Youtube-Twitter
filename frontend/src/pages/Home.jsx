@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, MessageCircle, Send } from 'lucide-react';
+import { Film, MessageCircle, Send, ArrowDownWideNarrow } from 'lucide-react';
 import { getAllVideos } from '../api/videoApi';
 import { createTweet, getAllTweets } from '../api/tweetApi';
 import { useAuth } from '../hooks/useAuth';
@@ -26,6 +26,8 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true);
   const [tweetCursor, setTweetCursor] = useState(null);
   const [hasMoreTweets, setHasMoreTweets] = useState(true);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortType, setSortType] = useState('desc');
 
   // Tweet compose
   const [tweetContent, setTweetContent] = useState('');
@@ -39,8 +41,8 @@ export default function Home() {
         page: pageNum,
         limit: 12,
         query: searchQuery || undefined,
-        sortBy: 'createdAt',
-        sortType: 'desc',
+        sortBy,
+        sortType,
       });
       const docs = data.docs || [];
       setVideos((prev) => (append ? [...prev, ...docs] : docs));
@@ -50,7 +52,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, sortBy, sortType]);
 
   const fetchTweets = useCallback(async (cursor = null, append = false) => {
     try {
@@ -118,8 +120,9 @@ export default function Home() {
         </motion.h2>
       )}
 
-      {/* Tab toggle */}
-      <div className="mb-6 flex items-center gap-1 rounded-xl bg-dark-900 p-1 w-fit border border-dark-800">
+      {/* Tab toggle + Sort */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-1 rounded-xl bg-dark-900 p-1 w-fit border border-dark-800">
         {[
           { id: 'videos', label: 'Videos', icon: Film },
           { id: 'tweets', label: 'Tweets', icon: MessageCircle },
@@ -144,6 +147,27 @@ export default function Home() {
             </span>
           </button>
         ))}
+      </div>
+
+      {tab === 'videos' && (
+        <div className="flex items-center gap-2 rounded-xl border border-dark-800 bg-dark-900 px-3 py-1.5">
+          <ArrowDownWideNarrow className="h-4 w-4 text-dark-400" />
+          <select
+            value={`${sortBy}:${sortType}`}
+            onChange={(e) => {
+              const [newSortBy, newSortType] = e.target.value.split(':');
+              setSortBy(newSortBy);
+              setSortType(newSortType);
+              setPage(1);
+            }}
+            className="bg-transparent text-sm text-dark-200 outline-none cursor-pointer"
+          >
+            <option value="createdAt:desc" className="bg-dark-900">Latest</option>
+            <option value="createdAt:asc" className="bg-dark-900">Oldest</option>
+            <option value="views:desc" className="bg-dark-900">Most Viewed</option>
+          </select>
+        </div>
+      )}
       </div>
 
       {/* Content */}

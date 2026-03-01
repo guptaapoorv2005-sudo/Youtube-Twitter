@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ThumbsUp, MessageCircle } from 'lucide-react';
+import { ThumbsUp, MessageCircle, EyeOff } from 'lucide-react';
 import { formatDuration, timeAgo, formatViews } from '../utils/formatters';
 import Avatar from './ui/Avatar';
 
@@ -24,6 +24,13 @@ export default function VideoCard({ video }) {
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
+          {/* Draft badge */}
+          {video.isPublished === false && (
+            <span className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md bg-yellow-500/90 px-1.5 py-0.5 text-xs font-medium text-black backdrop-blur-sm">
+              <EyeOff className="h-3 w-3" />
+              Draft
+            </span>
+          )}
           {/* Duration badge */}
           {video.duration != null && (
             <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">

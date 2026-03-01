@@ -11,8 +11,10 @@ import {
   Check,
   Trash2,
   Pencil,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
-import { getVideoById, incrementVideoView, deleteVideo } from '../api/videoApi';
+import { getVideoById, incrementVideoView, deleteVideo, togglePublishStatus } from '../api/videoApi';
 import { addToWatchHistory } from '../api/watchHistoryApi';
 import { getVideoComments, addComment } from '../api/commentApi';
 import { toggleVideoLike } from '../api/likeApi';
@@ -47,6 +49,9 @@ export default function Watch() {
   const [copied, setCopied] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [isPublished, setIsPublished] = useState(true);
+  const [publishToggling, setPublishToggling] = useState(false);
 
   const fetchVideo = useCallback(async () => {
     try {
@@ -56,6 +61,7 @@ export default function Watch() {
       setVideo(data);
       setLiked(data.likedStatus ?? false);
       setLikesCount(data.likesCount ?? 0);
+      setIsPublished(data.isPublished ?? true);
       // Increment view count + add to watch history (fire-and-forget)
       incrementVideoView(videoId).catch(() => {});
       addToWatchHistory(videoId).catch(() => {});
@@ -86,6 +92,8 @@ export default function Watch() {
   }, [fetchVideo, fetchComments]);
 
   const handleLike = async () => {
+    if (likeLoading) return;
+    setLikeLoading(true);
     try {
       const result = await toggleVideoLike(videoId);
       const nowLiked = result.liked;
@@ -93,6 +101,20 @@ export default function Watch() {
       setLikesCount((prev) => prev + (nowLiked ? 1 : -1));
     } catch (err) {
       console.error('Like failed:', err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const handleTogglePublish = async () => {
+    try {
+      setPublishToggling(true);
+      const result = await togglePublishStatus(videoId);
+      setIsPublished(result.isPublished);
+    } catch (err) {
+      console.error('Toggle publish failed:', err);
+    } finally {
+      setPublishToggling(false);
     }
   };
 
@@ -182,8 +204,16 @@ export default function Watch() {
             />
           </motion.div>
 
-          {/* Title */}
-          <h1 className="text-xl font-bold text-dark-100 leading-tight">{video.title}</h1>
+          {/* Title + Draft badge */}
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-dark-100 leading-tight">{video.title}</h1>
+            {!isPublished && (
+              <span className="inline-flex items-center gap-1 rounded-lg bg-yellow-500/15 px-2.5 py-1 text-xs font-medium text-yellow-400">
+                <EyeOff className="h-3 w-3" />
+                Draft
+              </span>
+            )}
+          </div>
 
           {/* Channel info + Actions */}
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -236,6 +266,18 @@ export default function Watch() {
               </button>
               {user && owner._id === user._id && (
                 <>
+                  <button
+                    onClick={handleTogglePublish}
+                    disabled={publishToggling}
+                    className={`flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm transition-colors disabled:opacity-50 ${
+                      isPublished
+                        ? 'border-dark-700 text-dark-300 hover:bg-dark-800'
+                        : 'border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10'
+                    }`}
+                  >
+                    {isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {publishToggling ? 'Updating…' : isPublished ? 'Unpublish' : 'Publish'}
+                  </button>
                   <button
                     onClick={() => navigate(`/edit/${videoId}`)}
                     className="flex items-center gap-1.5 rounded-xl border border-dark-700 px-4 py-2 text-sm text-dark-300 hover:bg-dark-800 transition-colors"

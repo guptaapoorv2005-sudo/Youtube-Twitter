@@ -15,12 +15,15 @@ export default function CommentCard({ comment, onDelete, onUpdate }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   // Use editableStatus from backend when available, fall back to manual check
   const isOwner = comment.editableStatus ?? (user?._id === (comment.owner?._id || comment.owner));
   const owner = typeof comment.owner === 'object' ? comment.owner : null;
 
   const handleLike = async () => {
+    if (likeLoading) return;
+    setLikeLoading(true);
     try {
       const result = await toggleCommentLike(comment._id);
       const nowLiked = result.liked;
@@ -28,6 +31,8 @@ export default function CommentCard({ comment, onDelete, onUpdate }) {
       setLikesCount((prev) => prev + (nowLiked ? 1 : -1));
     } catch (err) {
       console.error('Comment like failed:', err);
+    } finally {
+      setLikeLoading(false);
     }
   };
 

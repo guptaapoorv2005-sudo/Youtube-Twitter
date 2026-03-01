@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload as UploadIcon, Film, Image, X } from 'lucide-react';
+import { Upload as UploadIcon, Film, Image, X, Eye, EyeOff } from 'lucide-react';
 import { publishVideo } from '../api/videoApi';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -11,7 +11,7 @@ export default function Upload() {
   const videoRef = useRef(null);
   const thumbRef = useRef(null);
 
-  const [form, setForm] = useState({ title: '', description: '' });
+  const [form, setForm] = useState({ title: '', description: '', isPublished: true });
   const [videoFile, setVideoFile] = useState(null);
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
@@ -41,6 +41,7 @@ export default function Upload() {
     formData.append('thumbnail', thumbnailFile);
     formData.append('title', form.title.trim());
     formData.append('description', form.description.trim());
+    formData.append('publishStatus', form.isPublished);
 
     setLoading(true);
     try {
@@ -160,6 +161,40 @@ export default function Upload() {
             />
           </div>
 
+          {/* Publish toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-dark-700 bg-dark-800 px-4 py-3">
+            <div className="flex items-center gap-3">
+              {form.isPublished ? (
+                <Eye className="h-5 w-5 text-green-400" />
+              ) : (
+                <EyeOff className="h-5 w-5 text-dark-400" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-dark-100">
+                  {form.isPublished ? 'Public' : 'Draft'}
+                </p>
+                <p className="text-xs text-dark-400">
+                  {form.isPublished
+                    ? 'Anyone can view this video'
+                    : 'Only you can see this video'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, isPublished: !form.isPublished })}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                form.isPublished ? 'bg-accent-500' : 'bg-dark-600'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  form.isPublished ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Progress */}
           {loading && uploadProgress > 0 && (
             <div className="h-2 overflow-hidden rounded-full bg-dark-800">
@@ -173,7 +208,7 @@ export default function Upload() {
 
           <Button type="submit" variant="brand" className="w-full" loading={loading}>
             <UploadIcon className="h-4 w-4" />
-            Publish Video
+            {form.isPublished ? 'Publish Video' : 'Save as Draft'}
           </Button>
         </form>
       </motion.div>

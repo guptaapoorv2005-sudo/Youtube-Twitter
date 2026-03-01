@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Image, Save, ArrowLeft } from 'lucide-react';
-import { getVideoById, updateVideo } from '../api/videoApi';
+import { Image, Save, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { getVideoById, updateVideo, togglePublishStatus } from '../api/videoApi';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -22,6 +22,8 @@ export default function EditVideo() {
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
   const [originalThumbnail, setOriginalThumbnail] = useState(null);
+  const [isPublished, setIsPublished] = useState(true);
+  const [publishToggling, setPublishToggling] = useState(false);
 
   const fetchVideo = useCallback(async () => {
     try {
@@ -35,6 +37,7 @@ export default function EditVideo() {
       setForm({ title: data.title || '', description: data.description || '' });
       setOriginalThumbnail(data.thumbnail);
       setThumbnailPreview(data.thumbnail);
+      setIsPublished(data.isPublished ?? true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load video');
     } finally {
@@ -181,6 +184,51 @@ export default function EditVideo() {
               rows={4}
               className="w-full resize-none rounded-xl border border-dark-700 bg-dark-800 px-4 py-2.5 text-sm text-dark-100 placeholder-dark-500 outline-none transition-colors focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30"
             />
+          </div>
+
+          {/* Publish toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-dark-700 bg-dark-800 px-4 py-3">
+            <div className="flex items-center gap-3">
+              {isPublished ? (
+                <Eye className="h-5 w-5 text-green-400" />
+              ) : (
+                <EyeOff className="h-5 w-5 text-dark-400" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-dark-100">
+                  {isPublished ? 'Public' : 'Draft'}
+                </p>
+                <p className="text-xs text-dark-400">
+                  {isPublished
+                    ? 'Anyone can view this video'
+                    : 'Only you can see this video'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={publishToggling}
+              onClick={async () => {
+                try {
+                  setPublishToggling(true);
+                  const result = await togglePublishStatus(videoId);
+                  setIsPublished(result.isPublished);
+                } catch (err) {
+                  console.error('Toggle publish failed:', err);
+                } finally {
+                  setPublishToggling(false);
+                }
+              }}
+              className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-50 ${
+                isPublished ? 'bg-accent-500' : 'bg-dark-600'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  isPublished ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
 
           <div className="flex gap-3">

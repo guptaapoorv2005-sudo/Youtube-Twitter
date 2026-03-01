@@ -141,7 +141,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description} = req.body
+    const { title, description, publishStatus = true} = req.body
 
     /* Optional Chaining Operator(?.) existence check karne ke liye hota hai, jaise neeche req ke andar files naam ka kuch nhi mila toh
     ye undefined return kar deta hai */
@@ -193,7 +193,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
         owner: req.user._id,
         title,
         description,
-        duration: video.duration
+        duration: video.duration,
+        isPublished: publishStatus
     })
 
     if(!publishedVideo){
