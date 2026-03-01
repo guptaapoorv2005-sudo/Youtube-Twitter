@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, MessageCircle, Send, ArrowDownWideNarrow } from 'lucide-react';
+import { Film, MessageCircle, Send } from 'lucide-react';
 import { getAllVideos } from '../api/videoApi';
 import { createTweet, getAllTweets } from '../api/tweetApi';
 import { useAuth } from '../hooks/useAuth';
 import VideoCard from '../components/VideoCard';
+import SortDropdown from '../components/ui/SortDropdown';
 import TweetCard from '../components/TweetCard';
 import { VideoCardSkeleton, TweetCardSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -150,23 +151,15 @@ export default function Home() {
       </div>
 
       {tab === 'videos' && (
-        <div className="flex items-center gap-2 rounded-xl border border-dark-800 bg-dark-900 px-3 py-1.5">
-          <ArrowDownWideNarrow className="h-4 w-4 text-dark-400" />
-          <select
-            value={`${sortBy}:${sortType}`}
-            onChange={(e) => {
-              const [newSortBy, newSortType] = e.target.value.split(':');
-              setSortBy(newSortBy);
-              setSortType(newSortType);
-              setPage(1);
-            }}
-            className="bg-transparent text-sm text-dark-200 outline-none cursor-pointer"
-          >
-            <option value="createdAt:desc" className="bg-dark-900">Latest</option>
-            <option value="createdAt:asc" className="bg-dark-900">Oldest</option>
-            <option value="views:desc" className="bg-dark-900">Most Viewed</option>
-          </select>
-        </div>
+        <SortDropdown
+          value={`${sortBy}:${sortType}`}
+          onChange={(val) => {
+            const [newSortBy, newSortType] = val.split(':');
+            setSortBy(newSortBy);
+            setSortType(newSortType);
+            setPage(1);
+          }}
+        />
       )}
       </div>
 

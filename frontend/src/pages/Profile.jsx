@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, MessageCircle, Users, Eye, ThumbsUp, Video, ListVideo, ArrowDownWideNarrow } from 'lucide-react';
+import { Film, MessageCircle, Users, Eye, ThumbsUp, Video, ListVideo } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getUserChannelProfile } from '../api/userApi';
 import { getChannelStats, getChannelVideos } from '../api/dashboardApi';
@@ -15,6 +15,7 @@ import { VideoCardSkeleton, TweetCardSkeleton, ProfileSkeleton, Skeleton } from 
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import Button from '../components/ui/Button';
+import SortDropdown from '../components/ui/SortDropdown';
 import { formatViews } from '../utils/formatters';
 
 export default function Profile() {
@@ -249,22 +250,16 @@ export default function Profile() {
             exit={{ opacity: 0 }}
           >
             {/* Sort dropdown */}
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-dark-800 bg-dark-900 px-3 py-1.5 w-fit">
-              <ArrowDownWideNarrow className="h-4 w-4 text-dark-400" />
-              <select
+            <div className="mb-4">
+              <SortDropdown
                 value={`${videoSortBy}:${videoSortType}`}
-                onChange={(e) => {
-                  const [newSortBy, newSortType] = e.target.value.split(':');
+                onChange={(val) => {
+                  const [newSortBy, newSortType] = val.split(':');
                   setVideoSortBy(newSortBy);
                   setVideoSortType(newSortType);
                   setVideoCursor(null);
                 }}
-                className="bg-transparent text-sm text-dark-200 outline-none cursor-pointer"
-              >
-                <option value="createdAt:desc" className="bg-dark-900">Latest</option>
-                <option value="createdAt:asc" className="bg-dark-900">Oldest</option>
-                <option value="views:desc" className="bg-dark-900">Most Viewed</option>
-              </select>
+              />
             </div>
 
             {contentLoading && videos.length === 0 ? (
