@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, MessageCircle, Users, Eye, ThumbsUp, Video, ListVideo } from 'lucide-react';
+import { Film, MessageCircle, Users, Eye, ThumbsUp, Video, ListVideo, Globe, Lock, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getUserChannelProfile } from '../api/userApi';
 import { getChannelStats, getChannelVideos } from '../api/dashboardApi';
 import { getAllTweets } from '../api/tweetApi';
 import { toggleSubscription } from '../api/subscriptionApi';
-import { getUserPlaylists } from '../api/playlistApi';
+import { getUserPlaylists, deletePlaylist, togglePlaylistPublicStatus } from '../api/playlistApi';
 import { useAuth } from '../hooks/useAuth';
 import VideoCard from '../components/VideoCard';
 import TweetCard from '../components/TweetCard';
@@ -143,6 +143,26 @@ export default function Profile() {
 
   const handleTweetDelete = (tweetId) => setTweets((prev) => prev.filter((t) => t._id !== tweetId));
   const handleTweetUpdate = (updated) => setTweets((prev) => prev.map((t) => (t._id === updated._id ? updated : t)));
+
+  const handlePlaylistDelete = async (id) => {
+    try {
+      await deletePlaylist(id);
+      setPlaylists((prev) => prev.filter((p) => p._id !== id));
+    } catch (err) {
+      console.error('Delete playlist failed:', err);
+    }
+  };
+
+  const handleTogglePublic = async (id) => {
+    try {
+      const updated = await togglePlaylistPublicStatus(id);
+      setPlaylists((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, isPublic: updated.isPublic } : p))
+      );
+    } catch (err) {
+      console.error('Toggle public failed:', err);
+    }
+  };
 
   if (loading) return <ProfileSkeleton />;
   if (error) return <ErrorState message={error} onRetry={fetchChannel} />;
@@ -368,6 +388,24 @@ export default function Profile() {
                           <span>{pl.isPublic ? 'Public' : 'Private'}</span>
                         </div>
                       </Link>
+                      {isOwnProfile && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleTogglePublic(pl._id)}
+                            className="rounded-lg p-2 text-dark-400 hover:bg-dark-800 hover:text-dark-200 transition-colors"
+                            title={pl.isPublic ? 'Make Private' : 'Make Public'}
+                          >
+                            {pl.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => handlePlaylistDelete(pl._id)}
+                            className="rounded-lg p-2 text-dark-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                            title="Delete playlist"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>
